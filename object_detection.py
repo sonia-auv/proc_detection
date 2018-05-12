@@ -416,34 +416,17 @@ class ObjectDetection:
                             [detection_boxes, detection_scores, detection_classes, num_detections],
                             feed_dict={image_tensor: image_expanded})
 
-                    # Visualization of the results of a detection.
-                    if self.visualize:
-                        vis_util.visualize_boxes_and_labels_on_image_array(
-                            image,
-                            np.squeeze(boxes),
-                            np.squeeze(classes).astype(np.int32),
-                            np.squeeze(scores),
-                            self.category_index,
-                            use_normalized_coordinates=True,
-                            line_thickness=8)
-                        if self.vis_text:
-                            cv2.putText(image, "fps: {}".format(fps.fps_local()), (10, 30),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.75, (77, 255, 9), 2)
-                        cv2.imshow('object_detection', image)
-                        image_message = self.cv_bridge.cv2_to_imgmsg(image, encoding="bgr8")
-                        self.image_publisher.publish(image_message)
-                        # Exit Option
-                        if cv2.waitKey(1) & 0xFF == ord('q'):
-                            break
-                    else:
-                        cur_frames += 1
-                        # Exit after max frames if no visualization
-                        for box, score, _class in zip(np.squeeze(boxes), np.squeeze(scores), np.squeeze(classes)):
-                            if cur_frames % self.det_interval == 0 and score > self.det_th:
-                                label = self.category_index[_class]['name']
-                                print("> label: {}\nscore: {}\nbox: {}".format(label, score, box))
-                        if cur_frames >= self.max_frames:
-                            break
+
+                    vis_util.visualize_boxes_and_labels_on_image_array(
+                        image,
+                        np.squeeze(boxes),
+                        np.squeeze(classes).astype(np.int32),
+                        np.squeeze(scores),
+                        self.category_index,
+                        use_normalized_coordinates=True,
+                        line_thickness=8)
+                    image_message = self.cv_bridge.cv2_to_imgmsg(image, encoding="bgr8")
+                    self.image_publisher.publish(image_message)
                     fps.update()
 
 
@@ -452,9 +435,6 @@ class ObjectDetection:
             gpu_worker.stop()
             cpu_worker.stop()
         fps.stop()
-        cv2.destroyAllWindows()
-        print('> [INFO] elapsed time (total): {:.2f}'.format(fps.elapsed()))
-        print('> [INFO] approx. FPS: {:.2f}'.format(fps.fps()))
 
 if __name__ == '__main__':
     ObjectDetection()
