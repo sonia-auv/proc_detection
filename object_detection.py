@@ -69,7 +69,7 @@ class ObjectDetection:
         self.image_subscriber = rospy.Subscriber(
             self.topic_subscriber, SensorImage, self.image_msg_callback)
 
-        time.sleep(0.05)
+        time.sleep(0.5)
 
         self.detection()
 
