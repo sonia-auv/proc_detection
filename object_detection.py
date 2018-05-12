@@ -26,9 +26,6 @@ import time
 
 
 class ObjectDetection:
-    IMAGE_PUBLISHER = '/deep_detector/object_detection'
-    IMAGE_SUBSCRIBER = '/usb_cam/image_raw'
-
     def __init__(self):
         rospy.init_node('deep_detector')
 
@@ -67,10 +64,10 @@ class ObjectDetection:
 
         self.init_detection()
 
-        self.image_publisher = rospy.Publisher(self.IMAGE_PUBLISHER,
+        self.image_publisher = rospy.Publisher(self.topic_publisher,
                                                SensorImage, queue_size=100)
         self.image_subscriber = rospy.Subscriber(
-            self.IMAGE_SUBSCRIBER, SensorImage, self.image_msg_callback)
+            self.topic_subscriber, SensorImage, self.image_msg_callback)
 
         self.detection()
 
@@ -249,6 +246,9 @@ class ObjectDetection:
         self.split_model = cfg['split_model']
         self.log_device = cfg['log_device']
         self.ssd_shape = cfg['ssd_shape']
+        self.topic_publisher = cfg['image_publisher']
+        self.topic_subscriber = cfg['image_subscriber']
+
 
     def detection(self):
         # Session Config: allow seperate GPU/CPU adressing and limit memory allocation
