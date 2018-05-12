@@ -372,15 +372,16 @@ class ObjectDetection:
                         if gpu_worker.is_sess_empty():
                             # read video frame, expand dimensions and convert to rgb
                             image = self.frame
-                            image.setflags(write=1)
-                            image_expanded = np.expand_dims(image, axis=0)
-                            # put new queue
-                            gpu_feeds = {image_tensor: image_expanded}
-                            if self.visualize:
-                                gpu_extras = image  # for visualization frame
-                            else:
-                                gpu_extras = None
-                            gpu_worker.put_sess_queue(self.gpu_opts, gpu_feeds, gpu_extras)
+                            if image is not None:
+                                image.setflags(write=1)
+                                image_expanded = np.expand_dims(image, axis=0)
+                                # put new queue
+                                gpu_feeds = {image_tensor: image_expanded}
+                                if self.visualize:
+                                    gpu_extras = image  # for visualization frame
+                                else:
+                                    gpu_extras = None
+                                gpu_worker.put_sess_queue(self.gpu_opts, gpu_feeds, gpu_extras)
 
                         g = gpu_worker.get_result_queue()
                         if g is None:
@@ -410,11 +411,12 @@ class ObjectDetection:
                     else:
                         # default session
                         image = self.frame
-                        image.setflags(write=1)
-                        image_expanded = np.expand_dims(image, axis=0)
-                        boxes, scores, classes, num = sess.run(
-                            [detection_boxes, detection_scores, detection_classes, num_detections],
-                            feed_dict={image_tensor: image_expanded})
+                        if image is not  None:
+                            image.setflags(write=1)
+                            image_expanded = np.expand_dims(image, axis=0)
+                            boxes, scores, classes, num = sess.run(
+                                [detection_boxes, detection_scores, detection_classes, num_detections],
+                                feed_dict={image_tensor: image_expanded})
 
 
                     vis_util.visualize_boxes_and_labels_on_image_array(
