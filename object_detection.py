@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 Created on Thu Dec 21 12:01:40 2017
@@ -57,28 +57,34 @@ class ObjectDetection:
         self.expand_in = None
         self.sess = None
         self.cur_frames = 0
+        self.boxes = None
+        self.classes = None
+        self.scores = None
 
+        self.get_config()
+        self.model_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'models', self.model_name, 'frozen_inference_graph.pb')
+        self.label_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'inference', self.model_name,'label_map.pbtxt')
+
+        self.detection_graph, self.score, self.expand = self.load_frozen_model()
+        self.load_labelmap()
+
+        self.init_detection()
 
         self.image_publisher = rospy.Publisher(self.IMAGE_PUBLISHER,
                                                SensorImage, queue_size=100)
         self.image_subscriber = rospy.Subscriber(
             self.IMAGE_SUBSCRIBER, SensorImage, self.image_msg_callback)
 
-        self.get_config()
-        self.model_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'models', self.model_name, 'frozen_inference_graph.pb')
-        self.label_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'inference', self.model_name,'label_map.pbtxt')
+        time.sleep(1)
 
-        self.load_frozen_model()
-        self.load_labelmap()
-
-        self.object_detection()
+        self.detection()
 
         rospy.spin()
 
     def load_frozen_model(self):
-        rospy.loginfo('>>>>>>> Loading frozen model into memory <<<<<<<<')
+        print('>>>>>>> Loading frozen model into memory <<<<<<<<')
         if not self.split_model:
-            rospy.loginfo('>>>>> Not spliting model for inference <<<<<')
+            print('>>>>> Not spliting model for inference <<<<<')
             detection_graph = tf.Graph()
             with detection_graph.as_default():
                 od_graph_def = tf.GraphDef()
@@ -86,11 +92,9 @@ class ObjectDetection:
                     serialized_graph = fid.read()
                     od_graph_def.ParseFromString(serialized_graph)
                     tf.import_graph_def(od_graph_def, name='')
-            self.detection_graph = detection_graph
-            self.score = None
-            self.expand = None
+            return detection_graph, None, None
         else:
-            rospy.loginfo('>>>>> Spliting model for optimized inference <<<<<')
+            print('>>>>> Spliting model for optimized inference <<<<<')
             # load a frozen Model and split it into GPU and CPU graphs
             # Hardcoded for ssd_mobilenet
 
@@ -168,9 +172,7 @@ class ObjectDetection:
                     with tf.device('/cpu:0'):
                         tf.import_graph_def(remove, name='')
             #####################################################################
-            self.detection_graph = detection_graph
-            self.score = score
-            self.expand = expand
+            return detection_graph, score, expand
 
     def load_labelmap(self):
         rospy.loginfo('>>>>>>> Loading labelmap from label_map.pbtxt <<<<<<<<')
@@ -185,7 +187,7 @@ class ObjectDetection:
         else:
             return n.split(":")[0]
 
-    def detection(self):
+    def init_detection(self):
         rospy.loginfo(">>>>> Building Graph fpr object detection <<<<<")
         # Session Config: allow seperate GPU/CPU adressing and limit memory allocation
         config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=self.log_device)
@@ -217,78 +219,83 @@ class ObjectDetection:
                 rospy.loginfo('> Starting Detection')
 
     def image_msg_callback(self, img):
-        self.frame = self.cv_bridge.imgmsg_to_cv2(img)
-        if self.split_model:
-            # split model in seperate gpu and cpu session threads
-            if self.gpu_worker.is_sess_empty():
-                # read video frame, expand dimensions and convert to rgb
+        self.frame = self.cv_bridge.imgmsg_to_cv2(img, desired_encoding="bgr8")
+
+    def detect_object(self):
+        while not rospy.is_shutdown():
+            if self.split_model:
+                # split model in seperate gpu and cpu session threads
+                if self.gpu_worker.is_sess_empty():
+                    # read video frame, expand dimensions and convert to rgb
+                    image_expanded = np.expand_dims(self.frame, axis=0)
+                    #image_expanded = np.expand_dims(
+                    #    cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB), axis=0)
+                    # put new queue
+                    gpu_feeds = {self.image_tensor: image_expanded}
+                    if self.visualize:
+                        gpu_extras = self.frame  # for visualization frame
+                    else:
+                        gpu_extras = None
+                    self.gpu_worker.put_sess_queue(self.gpu_opts, gpu_feeds, gpu_extras)
+
+                g = self.gpu_worker.get_result_queue()
+                if g is None:
+                    # gpu thread has no output queue. ok skip, let's check cpu thread.
+                    pass
+                else:
+                    # gpu thread has output queue.
+                    self.score, self.expand, self.frame = g["results"][0], g["results"][1], g["extras"]
+
+                    if self.cpu_worker.is_sess_empty():
+                        # When cpu thread has no next queue, put new queue.
+                        # else, drop gpu queue.
+                        cpu_feeds = {self.score_in: self.score, self.expand_in: self.expand}
+                        cpu_extras = self.frame
+                        self.cpu_worker.put_sess_queue(self.cpu_opts, cpu_feeds, cpu_extras)
+
+                c = self.cpu_worker.get_result_queue()
+                if c is None:
+                    # cpu thread has no output queue. ok, nothing to do. continue
+                    time.sleep(0.005)
+                    continue
+                else:
+                    cpu_counter = 0
+                    self.boxes, self.scores, self.classes, num, self.frame = c["results"][0], c[
+                        "results"][1], c["results"][2], c["results"][3], c["extras"]
+            else:
+                # default session
                 image_expanded = np.expand_dims(
                     cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB), axis=0)
-                # put new queue
-                gpu_feeds = {self.image_tensor: image_expanded}
-                if self.visualize:
-                    gpu_extras = self.frame  # for visualization frame
-                else:
-                    gpu_extras = None
-                self.gpu_worker.put_sess_queue(self.gpu_opts, gpu_feeds, gpu_extras)
+                self.boxes, self.scores, self.classes, num = self.sess.run(
+                    [self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detections],
+                    feed_dict={self.image_tensor: image_expanded})
 
-            g = self.gpu_worker.get_result_queue()
-            if g is None:
-                # gpu thread has no output queue. ok skip, let's check cpu thread.
-                pass
+            # Visualization of the results of a detection.
+            if self.visualize:
+                vis_util.visualize_boxes_and_labels_on_image_array(
+                    self.frame,
+                    np.squeeze(self.boxes),
+                    np.squeeze(self.classes).astype(np.int32),
+                    np.squeeze(self.scores),
+                    self.category_index,
+                    use_normalized_coordinates=True,
+                    line_thickness=8)
+                if self.vis_text:
+                    cv2.putText(self.frame, "fps: {}".format(self.fps.fps_local()), (10, 30),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.75, (77, 255, 9), 2)
+                cv2.imshow('object_detection', self.frame)
+
             else:
-                # gpu thread has output queue.
-                score, expand, image = g["results"][0], g["results"][1], g["extras"]
-
-                if self.cpu_worker.is_sess_empty():
-                    # When cpu thread has no next queue, put new queue.
-                    # else, drop gpu queue.
-                    cpu_feeds = {self.score_in: score, self.expand_in: expand}
-                    cpu_extras = image
-                    self.cpu_worker.put_sess_queue(self.cpu_opts, cpu_feeds, cpu_extras)
-
-            c = self.cpu_worker.get_result_queue()
-            if c is None:
-                # cpu thread has no output queue. ok, nothing to do. continue
-                time.sleep(0.005)
-            else:
-                cpu_counter = 0
-                boxes, scores, classes, num, image = c["results"][0], c[
-                    "results"][1], c["results"][2], c["results"][3], c["extras"]
-        else:
-            # default session
-            image = self.frame
-            image_expanded = np.expand_dims(
-                cv2.cvtColor(image, cv2.COLOR_BGR2RGB), axis=0)
-            boxes, scores, classes, num = self.sess.run(
-                [self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detections],
-                feed_dict={self.image_tensor: image_expanded})
-
-        # Visualization of the results of a detection.
-        if self.visualize:
-            vis_util.visualize_boxes_and_labels_on_image_array(
-                image,
-                np.squeeze(boxes),
-                np.squeeze(classes).astype(np.int32),
-                np.squeeze(scores),
-                self.category_index,
-                use_normalized_coordinates=True,
-                line_thickness=8)
-            if self.vis_text:
-                cv2.putText(image, "fps: {}".format(self.fps.fps_local()), (10, 30),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.75, (77, 255, 9), 2)
-            cv2.imshow('object_detection', image)
-
-        else:
-            self.cur_frames += 1
-            # Exit after max frames if no visualization
-            for box, score, _class in zip(np.squeeze(boxes), np.squeeze(scores), np.squeeze(classes)):
-                if self.cur_frames % self.det_interval == 0 and score > self.det_th:
-                    label = self.category_index[_class]['name']
-                    print("> label: {}\nscore: {}\nbox: {}".format(label, score, box))
-            if self.cur_frames >= self.max_frames:
-                pass
-        self.fps.update()
+                self.cur_frames += 1
+                # Exit after max frames if no visualization
+                for box, score, _class in zip(np.squeeze(self.boxes), np.squeeze(self.scores),
+                                              np.squeeze(self.classes)):
+                    if self.cur_frames % self.det_interval == 0 and score > self.det_th:
+                        label = self.category_index[_class]['name']
+                        print("> label: {}\nscore: {}\nbox: {}".format(label, score, box))
+                if self.cur_frames >= self.max_frames:
+                    pass
+            self.fps.update()
 
     def stop(self):
         # End everything
@@ -326,6 +333,128 @@ class ObjectDetection:
         self.log_device = cfg['log_device']
         self.ssd_shape = cfg['ssd_shape']
 
+    def detection(self):
+        print("> Building Graph")
+        # Session Config: allow seperate GPU/CPU adressing and limit memory allocation
+        config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=self.log_device)
+        config.gpu_options.allow_growth = self.allow_memory_growth
+        cur_frames = 0
+        with self.detection_graph.as_default():
+            with tf.Session(graph=self.detection_graph, config=config) as sess:
+                # Define Input and Ouput tensors
+                image_tensor = self.detection_graph.get_tensor_by_name('image_tensor:0')
+                detection_boxes = self.detection_graph.get_tensor_by_name('detection_boxes:0')
+                detection_scores = self.detection_graph.get_tensor_by_name('detection_scores:0')
+                detection_classes = self.detection_graph.get_tensor_by_name('detection_classes:0')
+                num_detections = self.detection_graph.get_tensor_by_name('num_detections:0')
+                if self.split_model:
+                    score_out = self.detection_graph.get_tensor_by_name('Postprocessor/convert_scores:0')
+                    expand_out = self.detection_graph.get_tensor_by_name('Postprocessor/ExpandDims_1:0')
+                    score_in = self.detection_graph.get_tensor_by_name('Postprocessor/convert_scores_1:0')
+                    expand_in = self.detection_graph.get_tensor_by_name('Postprocessor/ExpandDims_1_1:0')
+                    # Threading
+                    gpu_worker = SessionWorker("GPU", self.detection_graph, config)
+                    cpu_worker = SessionWorker("CPU", self.detection_graph, config)
+                    gpu_opts = [score_out, expand_out]
+                    cpu_opts = [detection_boxes, detection_scores, detection_classes, num_detections]
+                    gpu_counter = 0
+                    cpu_counter = 0
+                # Start Video Stream and FPS calculation
+                fps = FPS2(self.fps_interval).start()
+                #video_stream = WebcamVideoStream(self.video_input, self.width, self.height).start()
+                cur_frames = 0
+                print("> Press 'q' to Exit")
+                print('> Starting Detection')
+                while not rospy.is_shutdown():
+                    # actual Detection
+                    if self.split_model:
+                        # split model in seperate gpu and cpu session threads
+                        if gpu_worker.is_sess_empty():
+                            # read video frame, expand dimensions and convert to rgb
+                            image = self.frame
+                            image.setflags(write=1)
+                            image_expanded = np.expand_dims(image, axis=0)
+                            # put new queue
+                            gpu_feeds = {image_tensor: image_expanded}
+                            if self.visualize:
+                                gpu_extras = image  # for visualization frame
+                            else:
+                                gpu_extras = None
+                            gpu_worker.put_sess_queue(self.gpu_opts, gpu_feeds, gpu_extras)
+
+                        g = gpu_worker.get_result_queue()
+                        if g is None:
+                            # gpu thread has no output queue. ok skip, let's check cpu thread.
+                            pass
+                        else:
+                            # gpu thread has output queue.
+                            gpu_counter = 0
+                            score, expand, image = g["results"][0], g["results"][1], g["extras"]
+
+                            if cpu_worker.is_sess_empty():
+                                # When cpu thread has no next queue, put new queue.
+                                # else, drop gpu queue.
+                                cpu_feeds = {self.score_in: score, self.expand_in: expand}
+                                cpu_extras = image
+                                cpu_worker.put_sess_queue(self.cpu_opts, cpu_feeds, cpu_extras)
+
+                        c = cpu_worker.get_result_queue()
+                        if c is None:
+                            # cpu thread has no output queue. ok, nothing to do. continue
+                            time.sleep(0.005)
+                            continue  # If CPU RESULT has not been set yet, no fps update
+                        else:
+                            cpu_counter = 0
+                            boxes, scores, classes, num, image = c["results"][0], c["results"][1], c["results"][2], \
+                                                                 c["results"][3], c["extras"]
+                    else:
+                        # default session
+                        image = self.frame
+                        image.setflags(write=1)
+                        image_expanded = np.expand_dims(image, axis=0)
+                        boxes, scores, classes, num = sess.run(
+                            [detection_boxes, detection_scores, detection_classes, num_detections],
+                            feed_dict={image_tensor: image_expanded})
+
+                    # Visualization of the results of a detection.
+                    if self.visualize:
+                        vis_util.visualize_boxes_and_labels_on_image_array(
+                            image,
+                            np.squeeze(boxes),
+                            np.squeeze(classes).astype(np.int32),
+                            np.squeeze(scores),
+                            self.category_index,
+                            use_normalized_coordinates=True,
+                            line_thickness=8)
+                        if self.vis_text:
+                            cv2.putText(image, "fps: {}".format(fps.fps_local()), (10, 30),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 0.75, (77, 255, 9), 2)
+                        cv2.imshow('object_detection', image)
+                        image_message = self.cv_bridge.cv2_to_imgmsg(image, encoding="bgr8")
+                        self.image_publisher.publish(image_message)
+                        # Exit Option
+                        if cv2.waitKey(1) & 0xFF == ord('q'):
+                            break
+                    else:
+                        cur_frames += 1
+                        # Exit after max frames if no visualization
+                        for box, score, _class in zip(np.squeeze(boxes), np.squeeze(scores), np.squeeze(classes)):
+                            if cur_frames % self.det_interval == 0 and score > self.det_th:
+                                label = self.category_index[_class]['name']
+                                print("> label: {}\nscore: {}\nbox: {}".format(label, score, box))
+                        if cur_frames >= self.max_frames:
+                            break
+                    fps.update()
+
+
+        # End everything
+        if self.split_model:
+            gpu_worker.stop()
+            cpu_worker.stop()
+        fps.stop()
+        cv2.destroyAllWindows()
+        print('> [INFO] elapsed time (total): {:.2f}'.format(fps.elapsed()))
+        print('> [INFO] approx. FPS: {:.2f}'.format(fps.fps()))
 
 if __name__ == '__main__':
     ObjectDetection()
