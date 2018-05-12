@@ -10,6 +10,7 @@ import cv2
 import threading
 import time
 import tensorflow as tf
+import rospy
 
 import sys
 PY2 = sys.version_info[0] == 2
@@ -79,7 +80,7 @@ class FPS2:
         self._glob_numFrames += 1
         self._local_numFrames += 1
         if self.curr_local_elapsed > self._interval:
-          print("> FPS: {}".format(self.fps_local()))
+          rospy.loginfo("FPS: {}".format(self.fps_local()))
           self._local_numFrames = 0
           self._local_start = curr_time
 
