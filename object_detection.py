@@ -349,18 +349,15 @@ class ObjectDetection:
                 fps.update()
 
     # End everything
-    if self.split_model:
-        self.gpu_worker.stop()
-        self.cpu_worker.stop()
-    self.fps.stop()
+        if self.split_model:
+            self.gpu_worker.stop()
+            self.cpu_worker.stop()
+        self.fps.stop()
     # video_stream.stop()
-    self.stop()
-    cv2.destroyAllWindows()
-    print('> [INFO] elapsed time (total): {:.2f}'.format(fps.elapsed()))
-
-
-p   rint('> [INFO] approx. FPS: {:.2f}'.format(fps.fps()))
-
+        self.stop()
+        cv2.destroyAllWindows()
+        print('> [INFO] elapsed time (total): {:.2f}'.format(fps.elapsed()))
+        print('> [INFO] approx. FPS: {:.2f}'.format(fps.fps()))
 
 if __name__ == '__main__':
     ObjectDetection()
