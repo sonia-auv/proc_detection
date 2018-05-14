@@ -192,15 +192,20 @@ class ObjectDetection:
                 # Define Input and Ouput tensors
                 self.image_tensor = self.detection_graph.get_tensor_by_name('image_tensor:0')
                 self.detection_boxes = self.detection_graph.get_tensor_by_name('detection_boxes:0')
-                self.detection_scores = self.detection_graph.get_tensor_by_name('detection_scores:0')
-                self.detection_classes = self.detection_graph.get_tensor_by_name('detection_classes:0')
+                self.detection_scores = self.detection_graph.get_tensor_by_name(
+                    'detection_scores:0')
+                self.detection_classes = self.detection_graph.get_tensor_by_name(
+                    'detection_classes:0')
                 self.num_detections = self.detection_graph.get_tensor_by_name('num_detections:0')
                 if self.split_model:
-                    score_out = self.detection_graph.get_tensor_by_name('Postprocessor/convert_scores:0')
-                    expand_out = self.detection_graph.get_tensor_by_name('Postprocessor/ExpandDims_1:0')
+                    score_out = self.detection_graph.get_tensor_by_name(
+                        'Postprocessor/convert_scores:0')
+                    expand_out = self.detection_graph.get_tensor_by_name(
+                        'Postprocessor/ExpandDims_1:0')
                     self.score_in = self.detection_graph.get_tensor_by_name(
                         'Postprocessor/convert_scores_1:0')
-                    self.expand_in = self.detection_graph.get_tensor_by_name('Postprocessor/ExpandDims_1_1:0')
+                    self.expand_in = self.detection_graph.get_tensor_by_name(
+                        'Postprocessor/ExpandDims_1_1:0')
                     # Threading
                     self.gpu_worker = SessionWorker("GPU", self.detection_graph, config)
                     self.cpu_worker = SessionWorker("CPU", self.detection_graph, config)
@@ -250,7 +255,6 @@ class ObjectDetection:
         self.ssd_shape = cfg['ssd_shape']
         self.topic_publisher = cfg['image_publisher']
         self.topic_subscriber = cfg['image_subscriber']
-
 
     def detection(self):
         # Session Config: allow seperate GPU/CPU adressing and limit memory allocation
@@ -303,8 +307,8 @@ class ObjectDetection:
                     else:
                         cpu_counter = 0
                         self.boxes, self.scores, self.classes, num, image = c["results"][0], c["results"][1], \
-                                                                            c["results"][2], \
-                                                                            c["results"][3], c["extras"]
+                            c["results"][2], \
+                            c["results"][3], c["extras"]
                 else:
                     # default session
                     image = self.frame
@@ -312,7 +316,8 @@ class ObjectDetection:
                         image.setflags(write=1)
                         image_expanded = np.expand_dims(image, axis=0)
                         self.boxes, self.scores, self.classes, num = self.sess.run(
-                            [self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detections],
+                            [self.detection_boxes, self.detection_scores,
+                                self.detection_classes, self.num_detections],
                             feed_dict={self.image_tensor: image_expanded})
                     else:
                         rospy.logwarn("No image feeded to the network")
@@ -326,7 +331,7 @@ class ObjectDetection:
                         use_normalized_coordinates=True,
                         line_thickness=8)
                     if vis_text:
-                        cv2.putText(image,"fps: {}".format(fps.fps_local()), (10,30),
+                        cv2.putText(image, "fps: {}".format(fps.fps_local()), (10, 30),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.75, (77, 255, 9), 2)
                     cv2.imshow('object_detection', image)
                     # Exit Option
@@ -336,7 +341,7 @@ class ObjectDetection:
                     cur_frames += 1
                     # Exit after max frames if no visualization
                     for box, score, _class in zip(np.squeeze(boxes), np.squeeze(scores), np.squeeze(classes)):
-                        if cur_frames%det_interval==0 and score > det_th:
+                        if cur_frames % det_interval == 0 and score > det_th:
                             label = category_index[_class]['name']
                             print("> label: {}\nscore: {}\nbox: {}".format(label, score, box))
                     if cur_frames >= max_frames:
@@ -344,17 +349,17 @@ class ObjectDetection:
                 fps.update()
 
     # End everything
-    if split_model:
-        gpu_worker.stop()
-        cpu_worker.stop()
-    fps.stop()
-    #video_stream.stop()
+    if self.split_model:
+        self.gpu_worker.stop()
+        self.cpu_worker.stop()
+    self.fps.stop()
+    # video_stream.stop()
     self.stop()
     cv2.destroyAllWindows()
     print('> [INFO] elapsed time (total): {:.2f}'.format(fps.elapsed()))
+
+
 p   rint('> [INFO] approx. FPS: {:.2f}'.format(fps.fps()))
-
-
 
 
 if __name__ == '__main__':
