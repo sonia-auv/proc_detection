@@ -316,19 +316,45 @@ class ObjectDetection:
                             feed_dict={self.image_tensor: image_expanded})
                     else:
                         rospy.logwarn("No image feeded to the network")
-                vis_util.visualize_boxes_and_labels_on_image_array(
-                    image,
-                    np.squeeze(self.boxes),
-                    np.squeeze(self.classes).astype(np.int32),
-                    np.squeeze(self.scores),
-                    self.category_index,
-                    use_normalized_coordinates=True,
-                    line_thickness=8)
-                image_message = self.cv_bridge.cv2_to_imgmsg(image, encoding="bgr8")
-                self.image_publisher.publish(image_message)
-                self.fps.update()
+                if visualize:
+                    vis_util.visualize_boxes_and_labels_on_image_array(
+                        image,
+                        np.squeeze(boxes),
+                        np.squeeze(classes).astype(np.int32),
+                        np.squeeze(scores),
+                        category_index,
+                        use_normalized_coordinates=True,
+                        line_thickness=8)
+                    if vis_text:
+                        cv2.putText(image,"fps: {}".format(fps.fps_local()), (10,30),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.75, (77, 255, 9), 2)
+                    cv2.imshow('object_detection', image)
+                    # Exit Option
+                    if cv2.waitKey(1) & 0xFF == ord('q'):
+                        break
+                else:
+                    cur_frames += 1
+                    # Exit after max frames if no visualization
+                    for box, score, _class in zip(np.squeeze(boxes), np.squeeze(scores), np.squeeze(classes)):
+                        if cur_frames%det_interval==0 and score > det_th:
+                            label = category_index[_class]['name']
+                            print("> label: {}\nscore: {}\nbox: {}".format(label, score, box))
+                    if cur_frames >= max_frames:
+                        break
+                fps.update()
 
-        self.stop()
+    # End everything
+    if split_model:
+        gpu_worker.stop()
+        cpu_worker.stop()
+    fps.stop()
+    #video_stream.stop()
+    self.stop()
+    cv2.destroyAllWindows()
+    print('> [INFO] elapsed time (total): {:.2f}'.format(fps.elapsed()))
+p   rint('> [INFO] approx. FPS: {:.2f}'.format(fps.fps()))
+
+
 
 
 if __name__ == '__main__':
