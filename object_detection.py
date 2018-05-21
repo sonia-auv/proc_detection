@@ -14,6 +14,7 @@ from cv_bridge import CvBridge
 from tensorflow.core.framework import graph_pb2
 import rospy
 from sensor_msgs.msg import Image as SensorImage
+import cv2
 
 # Protobuf Compilation (once necessary)
 # os.system('protoc object_detection/protos/*.proto --python_out=.')
@@ -26,6 +27,7 @@ import time
 
 
 class ObjectDetection:
+    IMAGE_SUBSCRIBER = '/usb_cam/image_raw'
     def __init__(self):
         rospy.init_node('deep_detector')
 
@@ -67,7 +69,7 @@ class ObjectDetection:
         self.image_publisher = rospy.Publisher(self.topic_publisher,
                                                SensorImage, queue_size=100)
         self.image_subscriber = rospy.Subscriber(
-            self.topic_subscriber, SensorImage, self.image_msg_callback)
+            self.IMAGE_SUBSCRIBER, SensorImage, self.image_msg_callback)
 
         time.sleep(0.5)
 
@@ -217,6 +219,7 @@ class ObjectDetection:
 
     def image_msg_callback(self, img):
         self.frame = self.cv_bridge.imgmsg_to_cv2(img, desired_encoding="bgr8")
+        pass
 
     def stop(self):
         # End everything
@@ -265,11 +268,11 @@ class ObjectDetection:
             rospy.loginfo('Starting Detection')
             while not rospy.is_shutdown():
                 # actual Detection
+                # read video frame, expand dimensions and convert to rgb
+                image = self.frame
                 if self.split_model:
                     # split model in seperate gpu and cpu session threads
                     if self.gpu_worker.is_sess_empty():
-                        # read video frame, expand dimensions and convert to rgb
-                        image = self.frame
                         if image is not None:
                             image.setflags(write=1)
                             image_expanded = np.expand_dims(image, axis=0)
@@ -310,8 +313,6 @@ class ObjectDetection:
                             c["results"][2], \
                             c["results"][3], c["extras"]
                 else:
-                    # default session
-                    image = self.frame
                     if image is not None:
                         image.setflags(write=1)
                         image_expanded = np.expand_dims(image, axis=0)
@@ -321,43 +322,23 @@ class ObjectDetection:
                             feed_dict={self.image_tensor: image_expanded})
                     else:
                         rospy.logwarn("No image feeded to the network")
-                if visualize:
-                    vis_util.visualize_boxes_and_labels_on_image_array(
-                        image,
-                        np.squeeze(boxes),
-                        np.squeeze(classes).astype(np.int32),
-                        np.squeeze(scores),
-                        category_index,
-                        use_normalized_coordinates=True,
-                        line_thickness=8)
-                    if vis_text:
-                        cv2.putText(image, "fps: {}".format(fps.fps_local()), (10, 30),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.75, (77, 255, 9), 2)
-                    cv2.imshow('object_detection', image)
-                    # Exit Option
-                    if cv2.waitKey(1) & 0xFF == ord('q'):
-                        break
-                else:
-                    cur_frames += 1
-                    # Exit after max frames if no visualization
-                    for box, score, _class in zip(np.squeeze(boxes), np.squeeze(scores), np.squeeze(classes)):
-                        if cur_frames % det_interval == 0 and score > det_th:
-                            label = category_index[_class]['name']
-                            print("> label: {}\nscore: {}\nbox: {}".format(label, score, box))
-                    if cur_frames >= max_frames:
-                        break
-                fps.update()
 
-    # End everything
-        if self.split_model:
-            self.gpu_worker.stop()
-            self.cpu_worker.stop()
-        self.fps.stop()
-    # video_stream.stop()
-        self.stop()
-        cv2.destroyAllWindows()
-        print('> [INFO] elapsed time (total): {:.2f}'.format(fps.elapsed()))
-        print('> [INFO] approx. FPS: {:.2f}'.format(fps.fps()))
+                vis_util.visualize_boxes_and_labels_on_image_array(
+                    image,
+                    np.squeeze(self.boxes),
+                    np.squeeze(self.classes).astype(np.int32),
+                    np.squeeze(self.scores),
+                    self.category_index,
+                    use_normalized_coordinates=True,
+                    line_thickness=8)
+
+                image_message = self.cv_bridge.cv2_to_imgmsg(image, encoding="bgr8")
+                self.image_publisher.publish(image_message)
+                self.fps.update()
+
+            self.stop()
+
+
 
 if __name__ == '__main__':
     ObjectDetection()
