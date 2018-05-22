@@ -14,6 +14,9 @@ from cv_bridge import CvBridge
 from tensorflow.core.framework import graph_pb2
 import rospy
 from sensor_msgs.msg import Image as SensorImage
+from  std_msgs.msg import Header
+from deep_detector.msg import DetectionArray, Detection, BoundingBox2D
+from geometry_msgs.msg import Pose2D
 import cv2
 
 # Protobuf Compilation (once necessary)
@@ -68,6 +71,7 @@ class ObjectDetection:
 
         self.image_publisher = rospy.Publisher(self.topic_publisher,
                                                SensorImage, queue_size=100)
+        self.bbox_publisher = rospy.Publisher('/deep_detector/bounding_box', DetectionArray, queue_size=100)
         self.image_subscriber = rospy.Subscriber(
             self.IMAGE_SUBSCRIBER, SensorImage, self.image_msg_callback)
 
@@ -258,6 +262,7 @@ class ObjectDetection:
         self.ssd_shape = cfg['ssd_shape']
         self.topic_publisher = cfg['image_publisher']
         self.topic_subscriber = cfg['image_subscriber']
+        self.detection_thresh = cfg['detection_thresh']
 
     def detection(self):
         # Session Config: allow seperate GPU/CPU adressing and limit memory allocation
@@ -332,11 +337,51 @@ class ObjectDetection:
                     use_normalized_coordinates=True,
                     line_thickness=8)
 
+                bounding_box = self._extract_bounding_box(image.shape[1], image.shape[0])
+                self.bbox_publisher.publish(bounding_box)
                 image_message = self.cv_bridge.cv2_to_imgmsg(image, encoding="bgr8")
                 self.image_publisher.publish(image_message)
                 self.fps.update()
 
             self.stop()
+
+    @staticmethod
+    def _normalize_bbox(box, img_width, img_height):
+        top = int(box[0] * img_height)
+        left = int(box[1] * img_width)
+        bottom = int(box[2] * img_height)
+        right = int(box[3] * img_width)
+        return [left, right, top, bottom]
+
+    def _extract_bounding_box(self, img_width, img_height):
+        detection = Detection()
+        list_detection = DetectionArray()
+        detections = []
+        boxes = self.boxes[0]
+        for i in range(boxes.shape[0]):
+            if self.scores is not None and self.scores[0][i] > self.detection_thresh:
+                detection.bbox = self.create_bounding_box_from_box(boxes[i], img_width, img_height)
+                detection.confidence = self.scores[0][i]
+                detection.class_name.data = str(self.category_index[self.classes[0][i]]['name'])
+                detections.append(detection)
+        list_detection.detected_object = list(detections)
+        return list_detection
+
+
+    @classmethod
+    def create_bounding_box_from_box(cls, box, img_width, img_height):
+        bbox = BoundingBox2D()
+        center = Pose2D()
+        left, right, top, bottom = cls._normalize_bbox(box, img_width, img_height)
+        size_x = right - left
+        size_y = bottom - top
+        center.x = int(size_x / 2)
+        center.y = int(size_y / 2)
+        bbox.center = center
+        bbox.size_x = size_x
+        bbox.size_y = size_y
+        return bbox
+
 
 
 
