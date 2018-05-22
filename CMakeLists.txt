@@ -27,6 +27,21 @@ find_package(catkin REQUIRED COMPONENTS
     roslaunch
     )
 
+
+add_message_files(
+  DIRECTORY msg
+  FILES
+  BoundingBox2D.msg
+  Detection.msg
+  DetectionArray.msg
+)
+
+generate_messages(DEPENDENCIES
+  std_msgs
+  sensor_msgs
+  geometry_msgs
+)
+
 catkin_package(
     CATKIN_DEPENDS
     roscpp
@@ -45,7 +60,7 @@ include_directories(
 )
 
 #===============================================================================
-# I N S T A L L
+# I N S T A L L`
 catkin_install_python(PROGRAMS bin/deepDetector.py
  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
@@ -55,3 +70,4 @@ catkin_install_python(PROGRAMS bin/deepDetector.py
 
 # Add folders to be run by python nosetests
 #catkin_add_nosetests(test)
+
