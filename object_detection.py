@@ -14,10 +14,8 @@ from cv_bridge import CvBridge
 from tensorflow.core.framework import graph_pb2
 import rospy
 from sensor_msgs.msg import Image as SensorImage
-from  std_msgs.msg import Header
 from deep_detector.msg import DetectionArray, Detection, BoundingBox2D
 from geometry_msgs.msg import Pose2D
-import cv2
 
 # Protobuf Compilation (once necessary)
 # os.system('protoc object_detection/protos/*.proto --python_out=.')
@@ -30,7 +28,6 @@ import time
 
 
 class ObjectDetection:
-    IMAGE_SUBSCRIBER = '/usb_cam/image_raw'
     def __init__(self):
         rospy.init_node('deep_detector')
 
@@ -73,7 +70,7 @@ class ObjectDetection:
                                                SensorImage, queue_size=100)
         self.bbox_publisher = rospy.Publisher('/deep_detector/bounding_box', DetectionArray, queue_size=100)
         self.image_subscriber = rospy.Subscriber(
-            self.IMAGE_SUBSCRIBER, SensorImage, self.image_msg_callback)
+            self.topic_subscriber, SensorImage, self.image_msg_callback)
 
         time.sleep(0.5)
 
@@ -94,7 +91,7 @@ class ObjectDetection:
                     tf.import_graph_def(od_graph_def, name='')
             return detection_graph, None, None
         else:
-            rospy.loginfo('Spliting model for optimized inference')
+            rospy.loginfo('Spliti for optimized inference')
             # load a frozen Model and split it into GPU and CPU graphs
             # Hardcoded for ssd_mobilenet
 
@@ -236,11 +233,14 @@ class ObjectDetection:
         pass
 
     def get_config(self):
-        if (os.path.isfile('config.yml')):
-            with open("config.yml", 'r') as ymlfile:
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        file = os.path.join(dir_path, 'config.yml')
+        if (file):
+            with open(file, 'r') as ymlfile:
                 cfg = yaml.load(ymlfile)
         else:
-            with open("config.sample.yml", 'r') as ymlfile:
+            file = os.path.join(dir_path, 'config.sample.yml')
+            with open(file, 'r') as ymlfile:
                 cfg = yaml.load(ymlfile)
 
         self.video_input = cfg['video_input']
@@ -265,10 +265,6 @@ class ObjectDetection:
         self.detection_thresh = cfg['detection_thresh']
 
     def detection(self):
-        # Session Config: allow seperate GPU/CPU adressing and limit memory allocation
-        config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=self.log_device)
-        config.gpu_options.allow_growth = self.allow_memory_growth
-        cur_frames = 0
         with self.detection_graph.as_default():
             rospy.loginfo('Starting Detection')
             while not rospy.is_shutdown():
