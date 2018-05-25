@@ -371,8 +371,8 @@ class ObjectDetection:
         left, right, top, bottom = cls._normalize_bbox(box, img_width, img_height)
         size_x = right - left
         size_y = bottom - top
-        center.x = int(size_x / 2)
-        center.y = int(size_y / 2)
+        center.x = left + int(size_x / 2)
+        center.y = top + int(size_y / 2)
         bbox.center = center
         bbox.size_x = size_x
         bbox.size_y = size_y
