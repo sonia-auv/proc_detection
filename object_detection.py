@@ -350,12 +350,12 @@ class ObjectDetection:
         return [left, right, top, bottom]
 
     def _extract_bounding_box(self, img_width, img_height):
-        detection = Detection()
         list_detection = DetectionArray()
         detections = []
         boxes = self.boxes[0]
         for i in range(boxes.shape[0]):
             if self.scores is not None and self.scores[0][i] > self.detection_thresh:
+                detection = Detection()
                 detection.bbox = self.create_bounding_box_from_box(boxes[i], img_width, img_height)
                 detection.confidence = self.scores[0][i]
                 detection.class_name.data = str(self.category_index[self.classes[0][i]]['name'])
