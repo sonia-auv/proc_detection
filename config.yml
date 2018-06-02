@@ -31,4 +31,4 @@ detection_thresh: 0.5
 
 ## ROS
 image_publisher: '/deep_detector/object_detection'
-image_subscriber: '/usb_cam/image_raw'
+image_subscriber: '/provider_vision/Front_GigE'

@@ -83,7 +83,7 @@ class ObjectDetection:
         if not self.split_model:
             rospy.loginfo('Not spliting model for inference')
             detection_graph = tf.Graph()
-            with detection_graph.as_default():
+	    with detection_graph.as_default():
                 od_graph_def = tf.GraphDef()
                 with tf.gfile.GFile(self.model_path, 'rb') as fid:
                     serialized_graph = fid.read()
@@ -97,7 +97,9 @@ class ObjectDetection:
 
             ###################################################################
             input_graph = tf.Graph()
-            with tf.Session(graph=input_graph):
+            config = tf.ConfigProto()
+            config.gpu_options.allow_growth = True
+            with tf.Session(graph=input_graph,config=config):
                 if self.ssd_shape == 600:
                     shape = 7326
                 else:
