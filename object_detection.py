@@ -326,19 +326,19 @@ class ObjectDetection:
                     else:
                         rospy.logwarn("No image feeded to the network")
 
-                vis_util.visualize_boxes_and_labels_on_image_array(
-                    image,
-                    np.squeeze(self.boxes),
-                    np.squeeze(self.classes).astype(np.int32),
-                    np.squeeze(self.scores),
-                    self.category_index,
-                    use_normalized_coordinates=True,
-                    line_thickness=8)
+                #vis_util.visualize_boxes_and_labels_on_image_array(
+                #    image,
+                #     np.squeeze(self.boxes),
+                #     np.squeeze(self.classes).astype(np.int32),
+                #     np.squeeze(self.scores),
+                #     self.category_index,
+                #     use_normalized_coordinates=True,
+                #     line_thickness=8)
 
                 bounding_box = self._extract_bounding_box(image.shape[1], image.shape[0])
                 self.bbox_publisher.publish(bounding_box)
-                image_message = self.cv_bridge.cv2_to_imgmsg(image, encoding="bgr8")
-                self.image_publisher.publish(image_message)
+                #image_message = self.cv_bridge.cv2_to_imgmsg(image, encoding="bgr8")
+                #self.image_publisher.publish(image_message)
                 self.fps.update()
 
             self.stop()
