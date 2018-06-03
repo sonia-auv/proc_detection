@@ -25,8 +25,8 @@ num_trackers: 5             # Max number of objects to track
 ## Model
 model_name: 'ssd_mobilenet_v11_coco'
 model_path: 'models/ssd_mobilenet_v11_coco/frozen_inference_graph.pb'
-label_path: 'object_detection/data/mscoco_label_map.pbtxt'
-num_classes: 90
+label_path: 'object_detection/data/label_map.pbtxt'
+num_classes: 10
 detection_thresh: 0.5
 
 ## ROS
