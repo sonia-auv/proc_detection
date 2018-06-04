@@ -1,7 +1,7 @@
 ---
 ## Detection
 video_input: 0              # Input Must be OpenCV readable 
-visualize: True             # Disable for performance increase
+visualize: True            # Disable for performance increase
 vis_text: True              # Display fps on visualization stream
 max_frames: 5000            # only used if visualize==False
 width: 600                  # OpenCV only supports 4:3 formats others will be converted
@@ -25,10 +25,11 @@ num_trackers: 5             # Max number of objects to track
 ## Model
 model_name: 'ssd_mobilenet_v11_coco'
 model_path: 'models/ssd_mobilenet_v11_coco/frozen_inference_graph.pb'
-label_path: 'object_detection/data/label_map.pbtxt'
+label_path: 'inference/ssd_mobilenet_v11_coco/label_map.pbtxt'
 num_classes: 10
 detection_thresh: 0.5
 
 ## ROS
 image_publisher: '/deep_detector/object_detection'
 image_subscriber: '/provider_vision/Front_GigE'
+#image_subscriber: '/provider_vision/Bottom_GigE'
