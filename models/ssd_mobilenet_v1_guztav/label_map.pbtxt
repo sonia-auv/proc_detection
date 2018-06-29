@@ -1,0 +1,16 @@
+item {
+  id: 1
+  name: 'dice1'
+}
+item {
+  id: 2
+  name: 'dice2'
+}
+item {
+  id: 3
+  name: 'dice5'
+}
+item {
+  id: 4
+  name: 'dice6'
+}
