@@ -1,4 +1,3 @@
-/ssd_mobilenet_v1_guztavmodels/ssd_mobilenet_v1_guztav
 ## Detection
 video_input: 0              # Input Must be OpenCV readable 
 visualize: True             # Disable for performance increase
