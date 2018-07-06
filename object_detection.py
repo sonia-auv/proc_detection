@@ -5,6 +5,7 @@ Created on Thu Dec 21 12:01:40 2017
 
 @author: GustavZ
 """
+from datetime import datetime
 import numpy as np
 import os
 import tensorflow as tf
@@ -58,7 +59,7 @@ class ObjectDetection:
         self.get_config()
         self.model_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'models', self.model_name,
                                        'frozen_inference_graph.pb')
-        self.label_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'inference', self.model_name,
+        self.label_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'models', self.model_name,
                                        'label_map.pbtxt')
 
         self.detection_graph, self.score, self.expand = self.load_frozen_model()
@@ -270,11 +271,13 @@ class ObjectDetection:
         with self.detection_graph.as_default():
             rospy.loginfo('Starting Detection')
             while not rospy.is_shutdown():
+                start = datetime.now()
+
                 # actual Detection
                 # read video frame, expand dimensions and convert to rgb
                 image = self.frame
                 if self.split_model:
-                    # split model in seperate gpu and cpu session threads
+		    # split model in seperate gpu and cpu session threads
                     if self.gpu_worker.is_sess_empty():
                         if image is not None:
                             image.setflags(write=1)
@@ -334,11 +337,15 @@ class ObjectDetection:
                 #     self.category_index,
                 #     use_normalized_coordinates=True,
                 #     line_thickness=8)
-
+                print(datetime.now())
                 bounding_box = self._extract_bounding_box(image.shape[1], image.shape[0])
                 self.bbox_publisher.publish(bounding_box)
                 #image_message = self.cv_bridge.cv2_to_imgmsg(image, encoding="bgr8")
                 #self.image_publisher.publish(image_message)
+
+
+
+
                 self.fps.update()
 
             self.stop()
