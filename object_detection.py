@@ -67,8 +67,8 @@ class ObjectDetection:
         self.init_detection()
 
         self.image_publisher = rospy.Publisher(self.topic_publisher,
-                                               SensorImage, queue_size=100)
-        self.bbox_publisher = rospy.Publisher('/deep_detector/bounding_box', DetectionArray, queue_size=100)
+                                               SensorImage, queue_size=1)
+        self.bbox_publisher = rospy.Publisher('/deep_detector/bounding_box', DetectionArray, queue_size=1)
         self.image_subscriber = rospy.Subscriber(
             self.topic_subscriber, SensorImage, self.image_msg_callback)
 
