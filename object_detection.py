@@ -337,7 +337,6 @@ class ObjectDetection:
                 #     self.category_index,
                 #     use_normalized_coordinates=True,
                 #     line_thickness=8)
-                print(datetime.now())
                 bounding_box = self._extract_bounding_box(image.shape[1], image.shape[0])
                 self.bbox_publisher.publish(bounding_box)
                 #image_message = self.cv_bridge.cv2_to_imgmsg(image, encoding="bgr8")
