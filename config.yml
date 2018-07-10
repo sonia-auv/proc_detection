@@ -1,7 +1,7 @@
 ## Detection
 video_input: 0              # Input Must be OpenCV readable 
 visualize: True             # Disable for performance increase
-vis_text: True              # Display fps on visualization stream
+vis_text: False              # Display fps on visualization stream
 max_frames: 5000            # only used if visualize==False
 width: 600                  # OpenCV only supports 4:3 formats others will be converted
 height: 600                 # 600x600 leads to 640x480
@@ -30,6 +30,6 @@ detection_thresh: 0.5
 
 ## ROS
 image_publisher: '/deep_detector/object_detection'
-#image_subscriber: '/usb_cam/image_raw'
+##image_subscriber: '/usb_cam/image_raw'
 image_subscriber: '/provider_vision/Front_GigE'
 #image_subscriber: '/provider_vision/Bottom_GigE'
