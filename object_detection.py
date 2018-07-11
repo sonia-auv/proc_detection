@@ -223,7 +223,11 @@ class ObjectDetection:
 
     def image_msg_callback(self, img):
         self.frame = self.cv_bridge.compressed_imgmsg_to_cv2(img, desired_encoding="bgr8")
-        pass
+        start = datetime.now()
+        self.detection()
+        end = datetime.now()
+        delta = end - start
+        print("Delta:  " + delta)
 
     def stop(self):
         # End everything
@@ -269,85 +273,81 @@ class ObjectDetection:
 
     def detection(self):
         with self.detection_graph.as_default():
-            rospy.loginfo('Starting Detection')
-            while not rospy.is_shutdown():
-                start = datetime.now()
+            start = datetime.now()
 
-                # actual Detection
-                # read video frame, expand dimensions and convert to rgb
-                image = self.frame
-                if self.split_model:
-		    # split model in seperate gpu and cpu session threads
-                    if self.gpu_worker.is_sess_empty():
-                        if image is not None:
-                            image.setflags(write=1)
-                            image_expanded = np.expand_dims(image, axis=0)
-                            # put new queue
-                            gpu_feeds = {self.image_tensor: image_expanded}
-                            if self.visualize:
-                                gpu_extras = image  # for visualization frame
-                            else:
-                                gpu_extras = None
-                            self.gpu_worker.put_sess_queue(self.gpu_opts, gpu_feeds, gpu_extras)
-                        else:
-                            rospy.logwarn("No image feeded to the network")
-
-                    g = self.gpu_worker.get_result_queue()
-                    if g is None:
-                        # gpu thread has no output queue. ok skip, let's check cpu thread.
-                        pass
-                    else:
-                        # gpu thread has output queue.
-                        gpu_counter = 0
-                        score, expand, image = g["results"][0], g["results"][1], g["extras"]
-
-                        if self.cpu_worker.is_sess_empty():
-                            # When cpu thread has no next queue, put new queue.
-                            # else, drop gpu queue.
-                            cpu_feeds = {self.score_in: score, self.expand_in: expand}
-                            cpu_extras = image
-                            self.cpu_worker.put_sess_queue(self.cpu_opts, cpu_feeds, cpu_extras)
-
-                    c = self.cpu_worker.get_result_queue()
-                    if c is None:
-                        # cpu thread has no output queue. ok, nothing to do. continue
-                        time.sleep(0.005)
-                        continue  # If CPU RESULT has not been set yet, no fps update
-                    else:
-                        cpu_counter = 0
-                        self.boxes, self.scores, self.classes, num, image = c["results"][0], c["results"][1], \
-                            c["results"][2], \
-                            c["results"][3], c["extras"]
-                else:
+            # actual Detection
+            # read video frame, expand dimensions and convert to rgb
+            image = self.frame
+            if self.split_model:
+        # split model in seperate gpu and cpu session threads
+                if self.gpu_worker.is_sess_empty():
                     if image is not None:
                         image.setflags(write=1)
                         image_expanded = np.expand_dims(image, axis=0)
-                        self.boxes, self.scores, self.classes, num = self.sess.run(
-                            [self.detection_boxes, self.detection_scores,
-                                self.detection_classes, self.num_detections],
-                            feed_dict={self.image_tensor: image_expanded})
+                        # put new queue
+                        gpu_feeds = {self.image_tensor: image_expanded}
+                        if self.visualize:
+                            gpu_extras = image  # for visualization frame
+                        else:
+                            gpu_extras = None
+                        self.gpu_worker.put_sess_queue(self.gpu_opts, gpu_feeds, gpu_extras)
                     else:
                         rospy.logwarn("No image feeded to the network")
 
-                #vis_util.visualize_boxes_and_labels_on_image_array(
-                #    image,
-                #     np.squeeze(self.boxes),
-                #     np.squeeze(self.classes).astype(np.int32),
-                #     np.squeeze(self.scores),
-                #     self.category_index,
-                #     use_normalized_coordinates=True,
-                #     line_thickness=8)
-                bounding_box = self._extract_bounding_box(image.shape[1], image.shape[0])
-                self.bbox_publisher.publish(bounding_box)
-                #image_message = self.cv_bridge.cv2_to_imgmsg(image, encoding="bgr8")
-                #self.image_publisher.publish(image_message)
+                g = self.gpu_worker.get_result_queue()
+                if g is None:
+                    # gpu thread has no output queue. ok skip, let's check cpu thread.
+                    pass
+                else:
+                    # gpu thread has output queue.
+                    gpu_counter = 0
+                    score, expand, image = g["results"][0], g["results"][1], g["extras"]
+
+                    if self.cpu_worker.is_sess_empty():
+                        # When cpu thread has no next queue, put new queue.
+                        # else, drop gpu queue.
+                        cpu_feeds = {self.score_in: score, self.expand_in: expand}
+                        cpu_extras = image
+                        self.cpu_worker.put_sess_queue(self.cpu_opts, cpu_feeds, cpu_extras)
+
+                c = self.cpu_worker.get_result_queue()
+                if c is None:
+                    # cpu thread has no output queue. ok, nothing to do. continue
+                    time.sleep(0.005)
+                    continue  # If CPU RESULT has not been set yet, no fps update
+                else:
+                    cpu_counter = 0
+                    self.boxes, self.scores, self.classes, num, image = c["results"][0], c["results"][1], \
+                        c["results"][2], \
+                        c["results"][3], c["extras"]
+            else:
+                if image is not None:
+                    image.setflags(write=1)
+                    image_expanded = np.expand_dims(image, axis=0)
+                    self.boxes, self.scores, self.classes, num = self.sess.run(
+                        [self.detection_boxes, self.detection_scores,
+                            self.detection_classes, self.num_detections],
+                        feed_dict={self.image_tensor: image_expanded})
+                else:
+                    rospy.logwarn("No image feeded to the network")
+
+            #vis_util.visualize_boxes_and_labels_on_image_array(
+            #    image,
+            #     np.squeeze(self.boxes),
+            #     np.squeeze(self.classes).astype(np.int32),
+            #     np.squeeze(self.scores),
+            #     self.category_index,
+            #     use_normalized_coordinates=True,
+            #     line_thickness=8)
+            bounding_box = self._extract_bounding_box(image.shape[1], image.shape[0])
+            self.bbox_publisher.publish(bounding_box)
+            #image_message = self.cv_bridge.cv2_to_imgmsg(image, encoding="bgr8")
+            #self.image_publisher.publish(image_message)
 
 
 
 
-                self.fps.update()
-
-            self.stop()
+            self.fps.update()
 
     @staticmethod
     def _normalize_bbox(box, img_width, img_height):
