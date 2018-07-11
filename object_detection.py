@@ -314,7 +314,7 @@ class ObjectDetection:
                 if c is None:
                     # cpu thread has no output queue. ok, nothing to do. continue
                     time.sleep(0.005)
-                    break  # If CPU RESULT has not been set yet, no fps update
+                    return  # If CPU RESULT has not been set yet, no fps update
                 else:
                     cpu_counter = 0
                     self.boxes, self.scores, self.classes, num, image = c["results"][0], c["results"][1], \
