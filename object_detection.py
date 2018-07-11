@@ -14,7 +14,7 @@ import yaml
 from cv_bridge import CvBridge
 from tensorflow.core.framework import graph_pb2
 import rospy
-from sensor_msgs.msg import Image as SensorImage
+from sensor_msgs.msg import CompressedImage as SensorImage
 from deep_detector.msg import DetectionArray, Detection, BoundingBox2D
 from geometry_msgs.msg import Pose2D
 
@@ -222,7 +222,7 @@ class ObjectDetection:
                 self.fps = FPS2(self.fps_interval).start()
 
     def image_msg_callback(self, img):
-        self.frame = self.cv_bridge.imgmsg_to_cv2(img, desired_encoding="bgr8")
+        self.frame = self.cv_bridge.compressed_imgmsg_to_cv2(img, desired_encoding="bgr8")
         pass
 
     def stop(self):
