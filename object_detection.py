@@ -222,12 +222,13 @@ class ObjectDetection:
                 self.fps = FPS2(self.fps_interval).start()
 
     def image_msg_callback(self, img):
+	start = datetime.now()
         self.frame = self.cv_bridge.compressed_imgmsg_to_cv2(img, desired_encoding="bgr8")
-        start = datetime.now()
-        self.detection()
+        self.image_publisher.publish(img)
+	self.detection()
         end = datetime.now()
         delta = end - start
-        print("Delta:  " + delta)
+        print(delta)
 
     def stop(self):
         # End everything
