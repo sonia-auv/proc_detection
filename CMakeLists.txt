@@ -25,8 +25,7 @@ find_package(catkin REQUIRED COMPONENTS
     image_transport
     cv_bridge
     roslaunch
-    )
-
+)
 
 add_message_files(
   DIRECTORY msg
@@ -34,6 +33,12 @@ add_message_files(
   BoundingBox2D.msg
   Detection.msg
   DetectionArray.msg
+)
+
+add_service_files(
+  DIRECTORY srv
+  FILES
+  ChangeNetwork.srv
 )
 
 generate_messages(DEPENDENCIES
@@ -44,6 +49,7 @@ generate_messages(DEPENDENCIES
 
 catkin_package(
     CATKIN_DEPENDS
+    rospy
     roscpp
     std_msgs
     message_runtime
