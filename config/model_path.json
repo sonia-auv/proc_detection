@@ -1,0 +1,11 @@
+{
+  "simple_all_dice": "models/front",
+  "simple_deep_cashgreen": "models/bottom",
+  "simple_deep_cashred": "models/bottom",
+  "simple_deep_roulette": "models/bottom",
+  "simple_slot_machine": "models/front",
+  "simple_dice1": "models/front",
+  "simple_dice2": "models/front",
+  "simple_dice5": "models/front",
+  "simple_dice6": "models/front"
+}
