@@ -247,6 +247,7 @@ class ObjectDetection:
         self.split_model = cfg['split_model']
         self.log_device = cfg['log_device']
         self.ssd_shape = cfg['ssd_shape']
+        self.visualize = cfg['visualize']
 
     def detection(self):
         with self.detection_graph.as_default():
@@ -263,7 +264,10 @@ class ObjectDetection:
                         image_expanded = np.expand_dims(image, axis=0)
                         # put new queue
                         gpu_feeds = {self.image_tensor: image_expanded}
-                        gpu_extras = None
+                        if self.visualize:
+                            gpu_extras = image
+                        else:
+                            gpu_extras = None
                         self.gpu_worker.put_sess_queue(self.gpu_opts, gpu_feeds, gpu_extras)
                     else:
                         rospy.logwarn("No image feeded to the network")
