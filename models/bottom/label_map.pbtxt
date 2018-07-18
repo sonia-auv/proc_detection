@@ -1,0 +1,16 @@
+item {
+  id: 1
+  name: 'path'
+}
+item {
+  id: 2
+  name: 'roulette'
+}
+item {
+  id: 3
+  name: 'cashingreen'
+}
+item {
+  id: 4
+  name: 'cashinred'
+}
