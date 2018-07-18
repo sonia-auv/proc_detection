@@ -1,6 +1,6 @@
 ## Detection
 #video_input: 0              # Input Must be OpenCV readable 
-#visualize: True             # Disable for performance increase
+visualize: True             # Disable for performance increase
 #vis_text: False              # Display fps on visualization stream
 #max_frames: 5000            # only used if visualize==False
 #width: 600                  # OpenCV only supports 4:3 formats others will be converted
