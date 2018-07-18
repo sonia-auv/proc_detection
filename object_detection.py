@@ -60,6 +60,7 @@ class ObjectDetection:
         self.topic_subscriber = None
         self.detection_thresh = None
         self.num_classes=None
+        self.image_subscriber = None
 
         self.get_config()
         self.model_path = None
@@ -365,6 +366,10 @@ class ObjectDetection:
             models = json.load(f)
         task_name = req.task
         tmp_model = os.path.join(os.path.dirname(os.path.realpath(__file__)), self._get_task_model(task_name, models))
+
+        if self.image_subscriber is not None:
+            self.image_subscriber.unregister()
+
         if(tmp_model != self.model_path):
             self.model_path = tmp_model
             self.label_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), self._get_task_label(task_name, models))
@@ -381,8 +386,13 @@ class ObjectDetection:
 
             time.sleep(3)
 
-            self.image_subscriber = rospy.Subscriber(
-                self.topic_subscriber, SensorImage, self.image_msg_callback)
+            self.image_subscriber = rospy.Subscriber(self.topic_subscriber, SensorImage, self.image_msg_callback)
+        else:
+            conf = self._get_model_config(task_name)
+            self.topic_subscriber = conf["image_subscriber"]
+            self.detection_thresh = conf["detection_thresh"]
+            if self.model_path is not None:
+                self.image_subscriber = rospy.Subscriber(self.topic_subscriber, SensorImage, self.image_msg_callback)
 
         return ChangeNetworkResponse(True)
 
