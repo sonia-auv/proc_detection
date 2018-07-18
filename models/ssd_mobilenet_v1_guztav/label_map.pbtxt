@@ -1,16 +1,16 @@
 item {
   id: 1
-  name: 'dice2'
+  name: 'path'
 }
 item {
   id: 2
-  name: 'dice6'
+  name: 'roulette'
 }
 item {
   id: 3
-  name: 'dice1'
+  name: 'cashingreen'
 }
 item {
   id: 4
-  name: 'dice5'
+  name: 'cashinred'
 }
