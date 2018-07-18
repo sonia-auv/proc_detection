@@ -365,39 +365,46 @@ class ObjectDetection:
         with open(json_path) as f:
             models = json.load(f)
         task_name = req.task
-        tmp_model = os.path.join(os.path.dirname(os.path.realpath(__file__)), self._get_task_model(task_name, models))
+        tmp_model = self._get_task_model(task_name, models)
 
-        if self.image_subscriber is not None:
-            self.image_subscriber.unregister()
+        if tmp_model is not None:
+            tmp_model = os.path.join(os.path.dirname(os.path.realpath(__file__)), tmp_model)
 
-        if(tmp_model != self.model_path):
-            self.model_path = tmp_model
-            self.label_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), self._get_task_label(task_name, models))
+            if self.image_subscriber is not None:
+                self.image_subscriber.unregister()
+
+            if(tmp_model != self.model_path):
+                self.model_path = tmp_model
+                self.label_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), self._get_task_label(task_name, models))
 
 
-            conf = self._get_model_config(task_name)
-            self.topic_subscriber = conf["image_subscriber"]
-            self.detection_thresh = conf["detection_thresh"]
-            self.num_classes = conf["num_class"]
+                conf = self._get_model_config(task_name)
+                self.topic_subscriber = conf["image_subscriber"]
+                self.detection_thresh = conf["detection_thresh"]
+                self.num_classes = conf["num_class"]
 
-            self.detection_graph, self.score, self.expand = self.load_frozen_model()
-            self.load_labelmap()
-            self.init_detection()
+                self.detection_graph, self.score, self.expand = self.load_frozen_model()
+                self.load_labelmap()
+                self.init_detection()
 
-            time.sleep(3)
+                time.sleep(3)
 
-            self.image_subscriber = rospy.Subscriber(self.topic_subscriber, SensorImage, self.image_msg_callback)
-        else:
-            conf = self._get_model_config(task_name)
-            self.topic_subscriber = conf["image_subscriber"]
-            self.detection_thresh = conf["detection_thresh"]
-            if self.model_path is not None:
                 self.image_subscriber = rospy.Subscriber(self.topic_subscriber, SensorImage, self.image_msg_callback)
+            else:
+                conf = self._get_model_config(task_name)
+                self.topic_subscriber = conf["image_subscriber"]
+                self.detection_thresh = conf["detection_thresh"]
+                if self.model_path is not None:
+                    self.image_subscriber = rospy.Subscriber(self.topic_subscriber, SensorImage, self.image_msg_callback)
 
         return ChangeNetworkResponse(True)
 
     def _get_task_model(self, name, models):
-        model_path = models[name] + "/frozen_inference_graph.pb"
+        model = models.get(name)
+        if model is not None:
+            model_path = model + "/frozen_inference_graph.pb"
+        else:
+            model_path = model
         return model_path
 
     def _get_task_label(self, name, models):
