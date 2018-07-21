@@ -17,6 +17,8 @@ import rospy
 from sensor_msgs.msg import CompressedImage as SensorImage
 from deep_detector.msg import DetectionArray, Detection, BoundingBox2D
 from geometry_msgs.msg import Pose2D
+import json
+from deep_detector.srv import ChangeNetwork, ChangeNetworkRequest, ChangeNetworkResponse
 
 # Protobuf Compilation (once necessary)
 # os.system('protoc object_detection/protos/*.proto --python_out=.')
@@ -55,27 +57,19 @@ class ObjectDetection:
         self.boxes = None
         self.classes = None
         self.scores = None
+        self.topic_subscriber = None
+        self.detection_thresh = None
+        self.num_classes=None
+        self.image_subscriber = None
 
         self.get_config()
-        self.model_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'models', self.model_name,
-                                       'frozen_inference_graph.pb')
-        self.label_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'models', self.model_name,
-                                       'label_map.pbtxt')
+        self.model_path = None
+        self.label_path = None
 
-        self.detection_graph, self.score, self.expand = self.load_frozen_model()
-        self.load_labelmap()
 
-        self.init_detection()
-
-        self.image_publisher = rospy.Publisher(self.topic_publisher,
-                                               SensorImage, queue_size=1)
+        self.network_service = rospy.Service("deep_detector/change_network", ChangeNetwork, self.handle_change_network)
+        #self.image_publisher = rospy.Publisher(self.topic_publisher, SensorImage, queue_size=1)
         self.bbox_publisher = rospy.Publisher('/deep_detector/bounding_box', DetectionArray, queue_size=1)
-        self.image_subscriber = rospy.Subscriber(
-            self.topic_subscriber, SensorImage, self.image_msg_callback)
-
-        time.sleep(0.5)
-
-        self.detection()
 
         rospy.spin()
 
@@ -222,13 +216,8 @@ class ObjectDetection:
                 self.fps = FPS2(self.fps_interval).start()
 
     def image_msg_callback(self, img):
-	start = datetime.now()
         self.frame = self.cv_bridge.compressed_imgmsg_to_cv2(img, desired_encoding="bgr8")
-        self.image_publisher.publish(img)
-	self.detection()
-        end = datetime.now()
-        delta = end - start
-        print(delta)
+        self.detection()
 
     def stop(self):
         # End everything
@@ -251,26 +240,14 @@ class ObjectDetection:
             with open(file, 'r') as ymlfile:
                 cfg = yaml.load(ymlfile)
 
-        self.video_input = cfg['video_input']
-        self.visualize = cfg['visualize']
-        self.vis_text = cfg['vis_text']
-        self.max_frames = cfg['max_frames']
-        self.width = cfg['width']
-        self.height = cfg['height']
         self.fps_interval = cfg['fps_interval']
         self.allow_memory_growth = cfg['allow_memory_growth']
         self.det_interval = cfg['det_interval']
         self.det_th = cfg['det_th']
-        self.model_name = cfg['model_name']
-        self.model_path = cfg['model_path']
-        self.label_path = cfg['label_path']
-        self.num_classes = cfg['num_classes']
         self.split_model = cfg['split_model']
         self.log_device = cfg['log_device']
         self.ssd_shape = cfg['ssd_shape']
-        self.topic_publisher = cfg['image_publisher']
-        self.topic_subscriber = cfg['image_subscriber']
-        self.detection_thresh = cfg['detection_thresh']
+        self.visualize = cfg['visualize']
 
     def detection(self):
         with self.detection_graph.as_default():
@@ -288,7 +265,7 @@ class ObjectDetection:
                         # put new queue
                         gpu_feeds = {self.image_tensor: image_expanded}
                         if self.visualize:
-                            gpu_extras = image  # for visualization frame
+                            gpu_extras = image
                         else:
                             gpu_extras = None
                         self.gpu_worker.put_sess_queue(self.gpu_opts, gpu_feeds, gpu_extras)
@@ -386,6 +363,63 @@ class ObjectDetection:
         bbox.size_x = size_x
         bbox.size_y = size_y
         return bbox
+
+    def handle_change_network(self, req):
+        json_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'config/model_path.json')
+        with open(json_path) as f:
+            models = json.load(f)
+        task_name = req.task
+        tmp_model = self._get_task_model(task_name, models)
+
+        if tmp_model is not None:
+            tmp_model = os.path.join(os.path.dirname(os.path.realpath(__file__)), tmp_model)
+
+            if self.image_subscriber is not None:
+                self.image_subscriber.unregister()
+
+            if(tmp_model != self.model_path):
+                self.model_path = tmp_model
+                self.label_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), self._get_task_label(task_name, models))
+
+
+                conf = self._get_model_config(task_name)
+                self.topic_subscriber = conf["image_subscriber"]
+                self.detection_thresh = conf["detection_thresh"]
+                self.num_classes = conf["num_class"]
+
+                self.detection_graph, self.score, self.expand = self.load_frozen_model()
+                self.load_labelmap()
+                self.init_detection()
+
+                time.sleep(3)
+
+                self.image_subscriber = rospy.Subscriber(self.topic_subscriber, SensorImage, self.image_msg_callback)
+            else:
+                conf = self._get_model_config(task_name)
+                self.topic_subscriber = conf["image_subscriber"]
+                self.detection_thresh = conf["detection_thresh"]
+                if self.model_path is not None:
+                    self.image_subscriber = rospy.Subscriber(self.topic_subscriber, SensorImage, self.image_msg_callback)
+
+        return ChangeNetworkResponse(True)
+
+    def _get_task_model(self, name, models):
+        model = models.get(name)
+        if model is not None:
+            model_path = model + "/frozen_inference_graph.pb"
+        else:
+            model_path = model
+        return model_path
+
+    def _get_task_label(self, name, models):
+        label_path = models[name] + "/label_map.pbtxt"
+        return label_path
+
+    def _get_model_config(self, name):
+        config_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'config', name + '.json')
+        with open(config_path) as f:
+            configs = json.load(f)
+        return configs
 
 
 
