@@ -422,7 +422,5 @@ class ObjectDetection:
         return configs
 
 
-
-
-if __name__ == '__main__':
-    ObjectDetection()
+# if __name__ == '__main__':
+#     ObjectDetection()
