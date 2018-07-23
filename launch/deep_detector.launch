@@ -1,0 +1,6 @@
+<launch>
+	<node name="deepDetector"
+	    pkg="deep_detector"
+	    type="deepDetector"
+	    output="screen" />
+</launch>
