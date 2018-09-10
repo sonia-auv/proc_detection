@@ -1,0 +1,6 @@
+<launch>
+	<node name="object_detection.py"
+	    pkg="deep_detector"
+	    type="object_detection.py"
+	    output="screen" />
+</launch>

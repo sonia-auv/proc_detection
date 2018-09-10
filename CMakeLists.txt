@@ -67,7 +67,7 @@ include_directories(
 
 #===============================================================================
 # I N S T A L L`
-catkin_install_python(PROGRAMS bin/deepDetector.py
+catkin_install_python(PROGRAMS bin/deepDetector
  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
