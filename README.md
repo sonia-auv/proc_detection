@@ -80,5 +80,5 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 
 ## Acknowledgments
 
-* This repository is highly inspred on[GustavZ repository](https://github.com/GustavZ?tab=repositories) Original part used from this project are still copyrighted by him. Such part have been identified in our code.
+* This repository is highly inspred on [GustavZ repository](https://github.com/GustavZ?tab=repositories) Original part used from this project are still copyrighted by him. Such part have been identified in our code.
 
