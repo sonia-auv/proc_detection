@@ -3,7 +3,8 @@
 """
 Created on Thu Dec 21 12:01:40 2017
 
-@author: GustavZ
+@original-author: GustavZ
+@author: Club SONIA
 """
 from datetime import datetime
 import numpy as np
@@ -72,7 +73,10 @@ class ObjectDetection:
         self.bbox_publisher = rospy.Publisher('/deep_detector/bounding_box', DetectionArray, queue_size=1)
 
         rospy.spin()
-
+    ####################################################################################################################
+    # This part is highly inspired on https://github.com/GustavZ/realtime_object_detection/blob/r1.0/object_detection.py
+    # Licence using MIT licence 
+    # Copyright to https://github.com/GustavZ
     def load_frozen_model(self):
         rospy.loginfo('Loading frozen model into memory')
         if not self.split_model:
@@ -89,8 +93,6 @@ class ObjectDetection:
             rospy.loginfo('Spliti for optimized inference')
             # load a frozen Model and split it into GPU and CPU graphs
             # Hardcoded for ssd_mobilenet
-
-            ###################################################################
             input_graph = tf.Graph()
             config = tf.ConfigProto()
             config.gpu_options.allow_growth = True
@@ -108,8 +110,6 @@ class ObjectDetection:
                         score_def = node
                     if node.name == "Postprocessor/ExpandDims_1":
                         expand_def = node
-            #####################################################################
-            #####################################################################
             detection_graph = tf.Graph()
             with detection_graph.as_default():
                 od_graph_def = tf.GraphDef()
@@ -165,8 +165,8 @@ class ObjectDetection:
                         tf.import_graph_def(keep, name='')
                     with tf.device('/cpu:0'):
                         tf.import_graph_def(remove, name='')
-            #####################################################################
             return detection_graph, score, expand
+
 
     def load_labelmap(self):
         rospy.loginfo('Loading labelmap from label_map.pbtxt')
@@ -218,8 +218,8 @@ class ObjectDetection:
     def image_msg_callback(self, img):
         self.frame = self.cv_bridge.compressed_imgmsg_to_cv2(img, desired_encoding="bgr8")
         self.detection()
-
-    def stop(self):
+ 
+   def stop(self):
         # End everything
         if self.split_model:
             self.gpu_worker.stop()
@@ -321,12 +321,8 @@ class ObjectDetection:
             self.bbox_publisher.publish(bounding_box)
             #image_message = self.cv_bridge.cv2_to_imgmsg(image, encoding="bgr8")
             #self.image_publisher.publish(image_message)
-
-
-
-
             self.fps.update()
-
+    ####################################################################################################################
     @staticmethod
     def _normalize_bbox(box, img_width, img_height):
         top = int(box[0] * img_height)
