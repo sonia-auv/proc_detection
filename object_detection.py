@@ -3,7 +3,8 @@
 """
 Created on Thu Dec 21 12:01:40 2017
 
-@author: GustavZ
+@original-author: GustavZ
+@author: Club SONIA
 """
 from datetime import datetime
 import numpy as np
