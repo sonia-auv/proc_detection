@@ -188,8 +188,10 @@ class ObjectDetection:
         config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=self.log_device)
         config.gpu_options.allow_growth = self.allow_memory_growth
         with self.detection_graph.as_default():
-            with tf.Session(graph=self.detection_graph, config=config) as self.sess:
-                # Define Input and Ouput tensors
+            self.sess = tf.Session(graph=self.detection_graph, config=config)
+            # Define Input and Ouput tensors
+            rospy.loginfo("detection graph context")
+            try:
                 self.image_tensor = self.detection_graph.get_tensor_by_name('image_tensor:0')
                 self.detection_boxes = self.detection_graph.get_tensor_by_name('detection_boxes:0')
                 self.detection_scores = self.detection_graph.get_tensor_by_name(
@@ -211,15 +213,21 @@ class ObjectDetection:
                     self.cpu_worker = SessionWorker("CPU", self.detection_graph, config)
                     self.gpu_opts = [score_out, expand_out]
                     self.cpu_opts = [self.detection_boxes, self.detection_scores,
-                                     self.detection_classes, self.num_detections]
-                # Start Video Stream and FPS calculation
+                                    self.detection_classes, self.num_detections]
+                    # Start Video Stream and FPS calculation
                 self.fps = FPS2(self.fps_interval).start()
 
+            except:
+                rospy.logwarn("Unexpected error: {}".format(sys.exc_info()[0]))
+
     def image_msg_callback(self, img):
+        #rospy.loginfo("call callback!")
         self.frame = self.cv_bridge.compressed_imgmsg_to_cv2(img, desired_encoding="bgr8")
+        if self.frame is None:
+            rospy.logwarn("frame is None!")
         self.detection()
  
-   def stop(self):
+    def stop(self):
         # End everything
         if self.split_model:
             self.gpu_worker.stop()
@@ -303,8 +311,7 @@ class ObjectDetection:
                     image.setflags(write=1)
                     image_expanded = np.expand_dims(image, axis=0)
                     self.boxes, self.scores, self.classes, num = self.sess.run(
-                        [self.detection_boxes, self.detection_scores,
-                            self.detection_classes, self.num_detections],
+                        [self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detections],
                         feed_dict={self.image_tensor: image_expanded})
                 else:
                     rospy.logwarn("No image feeded to the network")
@@ -374,6 +381,7 @@ class ObjectDetection:
                 self.image_subscriber.unregister()
 
             if(tmp_model != self.model_path):
+                rospy.loginfo('take a tmp_model {}'.format(tmp_model))
                 self.model_path = tmp_model
                 self.label_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), self._get_task_label(task_name, models))
 
@@ -391,11 +399,14 @@ class ObjectDetection:
 
                 self.image_subscriber = rospy.Subscriber(self.topic_subscriber, SensorImage, self.image_msg_callback)
             else:
+                rospy.loginfo('take the default model')
                 conf = self._get_model_config(task_name)
                 self.topic_subscriber = conf["image_subscriber"]
                 self.detection_thresh = conf["detection_thresh"]
                 if self.model_path is not None:
                     self.image_subscriber = rospy.Subscriber(self.topic_subscriber, SensorImage, self.image_msg_callback)
+                else:
+                    rospy.logwarn('no model found')
 
         return ChangeNetworkResponse(True)
 
@@ -414,6 +425,7 @@ class ObjectDetection:
     def _get_model_config(self, name):
         config_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'config', name + '.json')
         with open(config_path) as f:
+            print(f)
             configs = json.load(f)
         return configs
 
