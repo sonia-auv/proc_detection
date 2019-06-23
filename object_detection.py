@@ -20,6 +20,8 @@ from deep_detector.msg import DetectionArray, Detection, BoundingBox2D
 from geometry_msgs.msg import Pose2D
 import json
 from deep_detector.srv import ChangeNetwork, ChangeNetworkRequest, ChangeNetworkResponse
+import sys
+import tensorflow.contrib.tensorrt as trt
 
 # Protobuf Compilation (once necessary)
 # os.system('protoc object_detection/protos/*.proto --python_out=.')
@@ -73,6 +75,7 @@ class ObjectDetection:
         self.bbox_publisher = rospy.Publisher('/deep_detector/bounding_box', DetectionArray, queue_size=1)
 
         rospy.spin()
+
     ####################################################################################################################
     # This part is highly inspired on https://github.com/GustavZ/realtime_object_detection/blob/r1.0/object_detection.py
     # Licence using MIT licence 
@@ -87,7 +90,17 @@ class ObjectDetection:
                 with tf.gfile.GFile(self.model_path, 'rb') as fid:
                     serialized_graph = fid.read()
                     od_graph_def.ParseFromString(serialized_graph)
-                    tf.import_graph_def(od_graph_def, name='')
+
+                    ## optimize the model with tensorRT
+
+                    trt_graph = trt.create_inference_graph(
+                    input_graph_def=od_graph_def,
+                    outputs=[self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detections],
+                    max_batch_size=1,
+                    max_workspace_size_bytes=1<<32,
+                    precision_mode="INT8")
+
+                    tf.import_graph_def(trt_graph, name='')
             return detection_graph, None, None
 
     def load_labelmap(self):
