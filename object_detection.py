@@ -95,10 +95,14 @@ class ObjectDetection:
 
                     trt_graph = trt.create_inference_graph(
                     input_graph_def=od_graph_def,
-                    outputs=[self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detections],
-                    max_batch_size=1,
-                    max_workspace_size_bytes=1<<32,
-                    precision_mode="INT8")
+                    outputs=["detection_boxes:0",
+                            "detection_scores:0", 
+                            "detection_classes:0",
+                            "num_detections:0"],
+                    max_batch_size=48,
+                    max_workspace_size_bytes=7000000000,
+                    is_dynamic_op=True,
+                    precision_mode="FP16")
 
                     tf.import_graph_def(trt_graph, name='')
             return detection_graph, None, None
@@ -128,11 +132,15 @@ class ObjectDetection:
             rospy.loginfo("detection graph context")
             try:
                 self.image_tensor = self.detection_graph.get_tensor_by_name('image_tensor:0')
+                rospy.loginfo("image_tensor: {}".format(self.image_tensor))
                 self.detection_boxes = self.detection_graph.get_tensor_by_name('detection_boxes:0')
+                rospy.loginfo("detection_boxes: {}".format(self.detection_boxes))
                 self.detection_scores = self.detection_graph.get_tensor_by_name(
                     'detection_scores:0')
+                rospy.loginfo("detection_scores: {}".format(self.detection_scores))
                 self.detection_classes = self.detection_graph.get_tensor_by_name(
                     'detection_classes:0')
+                rospy.loginfo("detection_classes: {}".format(self.detection_classes))
                 self.num_detections = self.detection_graph.get_tensor_by_name('num_detections:0')
                 if self.split_model:
                     score_out = self.detection_graph.get_tensor_by_name(
