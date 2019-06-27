@@ -99,10 +99,9 @@ class ObjectDetection:
                             "detection_scores:0", 
                             "detection_classes:0",
                             "num_detections:0"],
-                    max_batch_size=48,
+                    max_batch_size=1,
                     max_workspace_size_bytes=7000000000,
-                    is_dynamic_op=True,
-                    precision_mode="FP16")
+                    precision_mode="FP32")
 
                     tf.import_graph_def(trt_graph, name='')
             return detection_graph, None, None
@@ -164,7 +163,6 @@ class ObjectDetection:
                 rospy.logwarn("Unexpected error: {}".format(sys.exc_info()[0]))
 
     def image_msg_callback(self, img):
-        #rospy.loginfo("call callback!")
         self.frame = self.cv_bridge.compressed_imgmsg_to_cv2(img, desired_encoding="bgr8")
         if self.frame is None:
             rospy.logwarn("frame is None!")
