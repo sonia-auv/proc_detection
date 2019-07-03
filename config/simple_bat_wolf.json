@@ -1,5 +1,5 @@
 {
   "num_class": 2,
-  "detection_thresh": 0.5,
+  "detection_thresh": 0.75,
   "image_subscriber": "/provider_vision/Bottom_GigE/compressed"
 }

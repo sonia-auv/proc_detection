@@ -23,6 +23,8 @@ from deep_detector.srv import ChangeNetwork, ChangeNetworkRequest, ChangeNetwork
 import sys
 import tensorflow.contrib.tensorrt as trt
 
+import cv2
+
 # Protobuf Compilation (once necessary)
 # os.system('protoc object_detection/protos/*.proto --python_out=.')
 
@@ -31,6 +33,7 @@ from object_detection.utils import visualization_utils as vis_util
 from stuff.helper import FPS2, SessionWorker
 
 import time
+import thread
 
 
 class ObjectDetection:
@@ -64,6 +67,7 @@ class ObjectDetection:
         self.detection_thresh = None
         self.num_classes=None
         self.image_subscriber = None
+        self.model = None
 
         self.get_config()
         self.model_path = None
@@ -73,7 +77,7 @@ class ObjectDetection:
         self.network_service = rospy.Service("deep_detector/change_network", ChangeNetwork, self.handle_change_network)
         #self.image_publisher = rospy.Publisher(self.topic_publisher, SensorImage, queue_size=1)
         self.bbox_publisher = rospy.Publisher('/deep_detector/bounding_box', DetectionArray, queue_size=1)
-
+        thread.start_new_thread(self.detection, ())
         rospy.spin()
 
     ####################################################################################################################
@@ -81,17 +85,20 @@ class ObjectDetection:
     # Licence using MIT licence 
     # Copyright to https://github.com/GustavZ
     def load_frozen_model(self):
-        rospy.loginfo('Loading frozen model into memory')
-        if not self.split_model:
-            rospy.loginfo('Not spliting model for inference')
-            detection_graph = tf.Graph()
-            with detection_graph.as_default():
+        detection_graph = tf.Graph()
+        with detection_graph.as_default():
+
+            try:
+                trt_graph = tf.GraphDef()
+                with tf.gfile.GFile(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.model + "/trt.pb"), "rb") as f:
+                    serialized_trt_graph = f.read()
+                    trt_graph.ParseFromString(serialized_trt_graph)
+                rospy.loginfo("loading graph from file")
+            except:
                 od_graph_def = tf.GraphDef()
                 with tf.gfile.GFile(self.model_path, 'rb') as fid:
                     serialized_graph = fid.read()
                     od_graph_def.ParseFromString(serialized_graph)
-
-                    ## optimize the model with tensorRT
 
                     trt_graph = trt.create_inference_graph(
                     input_graph_def=od_graph_def,
@@ -100,10 +107,19 @@ class ObjectDetection:
                             "detection_classes:0",
                             "num_detections:0"],
                     max_batch_size=1,
-                    max_workspace_size_bytes=7000000000,
-                    precision_mode="FP32")
+                    max_workspace_size_bytes=1<<25,
+                    precision_mode="FP32",
+                    is_dynamic_op=False,
+                    minimum_segment_size=50)
 
-                    tf.import_graph_def(trt_graph, name='')
+                    rospy.loginfo("loading graph from scratch")
+
+                    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.model + "/trt.pb"), "wb") as f:
+                     f.write(trt_graph.SerializeToString())
+
+            rospy.loginfo("finish generating tensorrt engine")
+            tf.import_graph_def(trt_graph, name='')
+
             return detection_graph, None, None
 
     def load_labelmap(self):
@@ -122,8 +138,7 @@ class ObjectDetection:
 
     def init_detection(self):
         rospy.loginfo("Building Graph fpr object detection")
-        # Session Config: allow seperate GPU/CPU adressing and limit memory allocation
-        config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=self.log_device)
+        config = tf.ConfigProto(log_device_placement=False)
         config.gpu_options.allow_growth = self.allow_memory_growth
         with self.detection_graph.as_default():
             self.sess = tf.Session(graph=self.detection_graph, config=config)
@@ -141,38 +156,20 @@ class ObjectDetection:
                     'detection_classes:0')
                 rospy.loginfo("detection_classes: {}".format(self.detection_classes))
                 self.num_detections = self.detection_graph.get_tensor_by_name('num_detections:0')
-                if self.split_model:
-                    score_out = self.detection_graph.get_tensor_by_name(
-                        'Postprocessor/convert_scores:0')
-                    expand_out = self.detection_graph.get_tensor_by_name(
-                        'Postprocessor/ExpandDims_1:0')
-                    self.score_in = self.detection_graph.get_tensor_by_name(
-                        'Postprocessor/convert_scores_1:0')
-                    self.expand_in = self.detection_graph.get_tensor_by_name(
-                        'Postprocessor/ExpandDims_1_1:0')
-                    # Threading
-                    self.gpu_worker = SessionWorker("GPU", self.detection_graph, config)
-                    self.cpu_worker = SessionWorker("CPU", self.detection_graph, config)
-                    self.gpu_opts = [score_out, expand_out]
-                    self.cpu_opts = [self.detection_boxes, self.detection_scores,
-                                    self.detection_classes, self.num_detections]
-                    # Start Video Stream and FPS calculation
                 self.fps = FPS2(self.fps_interval).start()
 
             except:
                 rospy.logwarn("Unexpected error: {}".format(sys.exc_info()[0]))
 
+
+
     def image_msg_callback(self, img):
         self.frame = self.cv_bridge.compressed_imgmsg_to_cv2(img, desired_encoding="bgr8")
         if self.frame is None:
             rospy.logwarn("frame is None!")
-        self.detection()
  
     def stop(self):
         # End everything
-        if self.split_model:
-            self.gpu_worker.stop()
-            self.cpu_worker.stop()
         self.fps.stop()
 
     def boxes_above_threshold(self, detection_threshold, category_index, classes, scores, boxes):
@@ -193,83 +190,27 @@ class ObjectDetection:
         self.allow_memory_growth = cfg['allow_memory_growth']
         self.det_interval = cfg['det_interval']
         self.det_th = cfg['det_th']
-        self.split_model = cfg['split_model']
-        self.log_device = cfg['log_device']
-        self.ssd_shape = cfg['ssd_shape']
-        self.visualize = cfg['visualize']
 
     def detection(self):
-        with self.detection_graph.as_default():
-            start = datetime.now()
+        while 1:
+            if self.frame is not None:
+                with self.detection_graph.as_default():
+                    start = datetime.now()
 
-            # actual Detection
-            # read video frame, expand dimensions and convert to rgb
-            image = self.frame
-            if self.split_model:
-        # split model in seperate gpu and cpu session threads
-                if self.gpu_worker.is_sess_empty():
-                    if image is not None:
-                        image.setflags(write=1)
-                        image_expanded = np.expand_dims(image, axis=0)
-                        # put new queue
-                        gpu_feeds = {self.image_tensor: image_expanded}
-                        if self.visualize:
-                            gpu_extras = image
-                        else:
-                            gpu_extras = None
-                        self.gpu_worker.put_sess_queue(self.gpu_opts, gpu_feeds, gpu_extras)
-                    else:
-                        rospy.logwarn("No image feeded to the network")
-
-                g = self.gpu_worker.get_result_queue()
-                if g is None:
-                    # gpu thread has no output queue. ok skip, let's check cpu thread.
-                    pass
-                else:
-                    # gpu thread has output queue.
-                    gpu_counter = 0
-                    score, expand, image = g["results"][0], g["results"][1], g["extras"]
-
-                    if self.cpu_worker.is_sess_empty():
-                        # When cpu thread has no next queue, put new queue.
-                        # else, drop gpu queue.
-                        cpu_feeds = {self.score_in: score, self.expand_in: expand}
-                        cpu_extras = image
-                        self.cpu_worker.put_sess_queue(self.cpu_opts, cpu_feeds, cpu_extras)
-
-                c = self.cpu_worker.get_result_queue()
-                if c is None:
-                    # cpu thread has no output queue. ok, nothing to do. continue
-                    time.sleep(0.005)
-                    return  # If CPU RESULT has not been set yet, no fps update
-                else:
-                    cpu_counter = 0
-                    self.boxes, self.scores, self.classes, num, image = c["results"][0], c["results"][1], \
-                        c["results"][2], \
-                        c["results"][3], c["extras"]
-            else:
-                if image is not None:
+                    # actual Detection
+                    # read video frame, expand dimensions and convert to rgb
+                    image = self.frame
                     image.setflags(write=1)
                     image_expanded = np.expand_dims(image, axis=0)
                     self.boxes, self.scores, self.classes, num = self.sess.run(
                         [self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detections],
                         feed_dict={self.image_tensor: image_expanded})
-                else:
-                    rospy.logwarn("No image feeded to the network")
 
-            #vis_util.visualize_boxes_and_labels_on_image_array(
-            #    image,
-            #     np.squeeze(self.boxes),
-            #     np.squeeze(self.classes).astype(np.int32),
-            #     np.squeeze(self.scores),
-            #     self.category_index,
-            #     use_normalized_coordinates=True,
-            #     line_thickness=8)
-            bounding_box = self._extract_bounding_box(image.shape[1], image.shape[0])
-            self.bbox_publisher.publish(bounding_box)
-            #image_message = self.cv_bridge.cv2_to_imgmsg(image, encoding="bgr8")
-            #self.image_publisher.publish(image_message)
-            self.fps.update()
+                    bounding_box = self._extract_bounding_box(image.shape[1], image.shape[0])
+                    self.bbox_publisher.publish(bounding_box)
+                    self.fps.update()
+            else:
+                time.sleep(1)
     ####################################################################################################################
     @staticmethod
     def _normalize_bbox(box, img_width, img_height):
@@ -341,7 +282,7 @@ class ObjectDetection:
                 self.image_subscriber = rospy.Subscriber(self.topic_subscriber, SensorImage, self.image_msg_callback)
             else:
                 rospy.loginfo('take the default model')
-                conf = self._get_model_config(task_name)
+                conf = self._get_model_config(self.task_name)
                 self.topic_subscriber = conf["image_subscriber"]
                 self.detection_thresh = conf["detection_thresh"]
                 if self.model_path is not None:
@@ -352,11 +293,11 @@ class ObjectDetection:
         return ChangeNetworkResponse(True)
 
     def _get_task_model(self, name, models):
-        model = models.get(name)
-        if model is not None:
-            model_path = model + "/frozen_inference_graph.pb"
+        self.model = models.get(name)
+        if self.model is not None:
+            model_path = self.model + "/frozen_inference_graph.pb"
         else:
-            model_path = model
+            model_path = self.model
         return model_path
 
     def _get_task_label(self, name, models):
