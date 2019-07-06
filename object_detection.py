@@ -68,6 +68,7 @@ class ObjectDetection:
         self.num_classes=None
         self.image_subscriber = None
         self.model = None
+        self.prev_model = None
 
         self.get_config()
         self.model_path = None
@@ -85,42 +86,49 @@ class ObjectDetection:
     # Licence using MIT licence 
     # Copyright to https://github.com/GustavZ
     def load_frozen_model(self):
-        detection_graph = tf.Graph()
-        with detection_graph.as_default():
+        if(self.model != self.prev_model):
+            detection_graph = tf.Graph()
+            with detection_graph.as_default():
 
-            try:
-                trt_graph = tf.GraphDef()
-                with tf.gfile.GFile(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.model + "/trt.pb"), "rb") as f:
-                    serialized_trt_graph = f.read()
-                    trt_graph.ParseFromString(serialized_trt_graph)
-                rospy.loginfo("loading graph from file")
-            except:
-                od_graph_def = tf.GraphDef()
-                with tf.gfile.GFile(self.model_path, 'rb') as fid:
-                    serialized_graph = fid.read()
-                    od_graph_def.ParseFromString(serialized_graph)
+                try:
+                    trt_graph = tf.GraphDef()
+                    with tf.gfile.GFile(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.model + "/trt.pb"), "rb") as f:
+                        serialized_trt_graph = f.read()
+                        trt_graph.ParseFromString(serialized_trt_graph)
+                    rospy.loginfo("loading graph from file")
+                except:
+                    od_graph_def = tf.GraphDef()
+                    with tf.gfile.GFile(self.model_path, 'rb') as fid:
+                        serialized_graph = fid.read()
+                        od_graph_def.ParseFromString(serialized_graph)
 
-                    trt_graph = trt.create_inference_graph(
-                    input_graph_def=od_graph_def,
-                    outputs=["detection_boxes:0",
-                            "detection_scores:0", 
-                            "detection_classes:0",
-                            "num_detections:0"],
-                    max_batch_size=1,
-                    max_workspace_size_bytes=1<<25,
-                    precision_mode="FP32",
-                    is_dynamic_op=False,
-                    minimum_segment_size=50)
+                        trt_graph = trt.create_inference_graph(
+                        input_graph_def=od_graph_def,
+                        outputs=["detection_boxes:0",
+                                "detection_scores:0", 
+                                "detection_classes:0",
+                                "num_detections:0"],
+                        max_batch_size=1,
+                        max_workspace_size_bytes=1<<25,
+                        precision_mode="FP32",
+                        is_dynamic_op=False,
+                        minimum_segment_size=50)
 
-                    rospy.loginfo("loading graph from scratch")
+                        rospy.loginfo("loading graph from scratch")
 
-                    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.model + "/trt.pb"), "wb") as f:
-                     f.write(trt_graph.SerializeToString())
+                        with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.model + "/trt.pb"), "wb") as f:
+                            f.write(trt_graph.SerializeToString())
 
-            rospy.loginfo("finish generating tensorrt engine")
-            tf.import_graph_def(trt_graph, name='')
+                rospy.loginfo("finish generating tensorrt engine")
+                tf.import_graph_def(trt_graph, name='')
 
-            return detection_graph, None, None
+                self.prev_model = self.model
+                return detection_graph, None, None
+
+        else:
+
+            return self.detection_graph, None, None
+
 
     def load_labelmap(self):
         rospy.loginfo('Loading labelmap from label_map.pbtxt')
@@ -272,6 +280,7 @@ class ObjectDetection:
                 self.topic_subscriber = conf["image_subscriber"]
                 self.detection_thresh = conf["detection_thresh"]
                 self.num_classes = conf["num_class"]
+
 
                 self.detection_graph, self.score, self.expand = self.load_frozen_model()
                 self.load_labelmap()
