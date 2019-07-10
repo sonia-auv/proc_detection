@@ -73,12 +73,15 @@ class ObjectDetection:
         self.get_config()
         self.model_path = None
         self.label_path = None
+        self.finish_init = False
 
 
         self.network_service = rospy.Service("deep_detector/change_network", ChangeNetwork, self.handle_change_network)
         #self.image_publisher = rospy.Publisher(self.topic_publisher, SensorImage, queue_size=1)
         self.bbox_publisher = rospy.Publisher('/deep_detector/bounding_box', DetectionArray, queue_size=1)
+        self.detection_graph, self.score, self.expand = self.load_frozen_model()
         thread.start_new_thread(self.detection, ())
+        self.finish_init = True
         rospy.spin()
 
     ####################################################################################################################
@@ -87,46 +90,49 @@ class ObjectDetection:
     # Copyright to https://github.com/GustavZ
     def load_frozen_model(self):
         if(self.model != self.prev_model):
+            self.prev_model = self.model
+            rospy.loginfo("load a new frozen model {}".format(self.model))
             detection_graph = tf.Graph()
+            try:
+                trt_graph = tf.GraphDef()
+                with tf.gfile.GFile(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.model + "/trt.pb"), "rb") as f:
+                    serialized_trt_graph = f.read()
+                trt_graph.ParseFromString(serialized_trt_graph)
+                rospy.loginfo("loading graph from file")
+            except:
+                od_graph_def = tf.GraphDef()
+                with tf.gfile.GFile(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.model + "/frozen_inference_graph.pb"), 'rb') as fid:
+                    serialized_graph = fid.read()
+                od_graph_def.ParseFromString(serialized_graph)
+                        
+                trt_graph = trt.create_inference_graph(
+                input_graph_def=od_graph_def,
+                outputs=["detection_boxes:0",
+                        "detection_scores:0", 
+                        "detection_classes:0",
+                        "num_detections:0"],
+                max_batch_size=1,
+                max_workspace_size_bytes=1<<25,
+                precision_mode="FP32",
+                is_dynamic_op=False,
+                minimum_segment_size=50)
+
+                rospy.loginfo("loading graph from scratch")
+
+                with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.model + "/trt.pb"), "wb") as f:
+                    f.write(trt_graph.SerializeToString())
+            
             with detection_graph.as_default():
-
-                try:
-                    trt_graph = tf.GraphDef()
-                    with tf.gfile.GFile(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.model + "/trt.pb"), "rb") as f:
-                        serialized_trt_graph = f.read()
-                        trt_graph.ParseFromString(serialized_trt_graph)
-                    rospy.loginfo("loading graph from file")
-                except:
-                    od_graph_def = tf.GraphDef()
-                    with tf.gfile.GFile(self.model_path, 'rb') as fid:
-                        serialized_graph = fid.read()
-                        od_graph_def.ParseFromString(serialized_graph)
-
-                        trt_graph = trt.create_inference_graph(
-                        input_graph_def=od_graph_def,
-                        outputs=["detection_boxes:0",
-                                "detection_scores:0", 
-                                "detection_classes:0",
-                                "num_detections:0"],
-                        max_batch_size=1,
-                        max_workspace_size_bytes=1<<25,
-                        precision_mode="FP32",
-                        is_dynamic_op=False,
-                        minimum_segment_size=50)
-
-                        rospy.loginfo("loading graph from scratch")
-
-                        with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.model + "/trt.pb"), "wb") as f:
-                            f.write(trt_graph.SerializeToString())
 
                 rospy.loginfo("finish generating tensorrt engine")
                 tf.import_graph_def(trt_graph, name='')
 
-                self.prev_model = self.model
-                return detection_graph, None, None
+                rospy.loginfo("model is loaded!")
+            return detection_graph, None, None
 
         else:
 
+            rospy.loginfo("keep the previous model")
             return self.detection_graph, None, None
 
 
@@ -147,7 +153,7 @@ class ObjectDetection:
     def init_detection(self):
         rospy.loginfo("Building Graph fpr object detection")
         config = tf.ConfigProto(log_device_placement=False)
-        config.gpu_options.allow_growth = self.allow_memory_growth
+        config.gpu_options.allow_growth = True
         with self.detection_graph.as_default():
             self.sess = tf.Session(graph=self.detection_graph, config=config)
             # Define Input and Ouput tensors
@@ -198,6 +204,7 @@ class ObjectDetection:
         self.allow_memory_growth = cfg['allow_memory_growth']
         self.det_interval = cfg['det_interval']
         self.det_th = cfg['det_th']
+        self.model = cfg['initial_model']
 
     def detection(self):
         while 1:
@@ -208,6 +215,7 @@ class ObjectDetection:
                     # actual Detection
                     # read video frame, expand dimensions and convert to rgb
                     image = self.frame
+                    self.frame = None
                     image.setflags(write=1)
                     image_expanded = np.expand_dims(image, axis=0)
                     self.boxes, self.scores, self.classes, num = self.sess.run(
@@ -258,6 +266,10 @@ class ObjectDetection:
         return bbox
 
     def handle_change_network(self, req):
+        # wait until the initialisation model is finished
+        while not self.finish_init:
+            time.sleep(5)
+
         json_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'config/model_path.json')
         with open(json_path) as f:
             models = json.load(f)
@@ -291,7 +303,7 @@ class ObjectDetection:
                 self.image_subscriber = rospy.Subscriber(self.topic_subscriber, SensorImage, self.image_msg_callback)
             else:
                 rospy.loginfo('take the default model')
-                conf = self._get_model_config(self.task_name)
+                conf = self._get_model_config(task_name)
                 self.topic_subscriber = conf["image_subscriber"]
                 self.detection_thresh = conf["detection_thresh"]
                 if self.model_path is not None:
