@@ -1,3 +1,6 @@
 {
-  "simple_bat_wolf": "models/bottom"
+  "simple_bat_wolf": "models/bw-ve-jd",
+  "simple_vetalas": "models/bw-ve-jd", 
+  "simple_jiangshi": "models/bw-ve-jd", 
+  "simple_draugr": "models/bw-ve-jd" 
 }
