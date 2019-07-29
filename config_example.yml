@@ -28,11 +28,14 @@ initial_model: " "          # determine the initial loaded model
 
 # prediction configuration
 
-pred_thresh: 0.0       # threshold for the inference
-pred_classes: 5        # number of classes in the model
-pred_csv_path: " "     # path of the csv file that list image to predict
-pred_image_path: " "   # path of the image directory to predict
-pred_dataset_name: " " # name of the created dataset
-pred_project_name: " " # name of the created project
-pred_api_key: " "      # api key for labelbox
-pred_model: " "        # model name to use (in the models directory)
+pred_thresh: 0.0        # threshold for the inference
+pred_classes: 5         # number of classes in the model
+pred_csv_path: " "      # path of the csv file that list image to predict
+pred_image_path: " "    # path of the image directory to predict
+pred_dataset_name: " "  # name of the created dataset
+pred_project_name: " "  # name of the created project
+pred_api_key: " "       # api key for labelbox
+pred_model: " "         # model name to use (in the models directory)
+pred_classes_filter: [] # classes name to examine
+pred_begin: 0           # the index of the csv to begin the prediction
+pred_end: -1            # the index of the csv to end the prediction (-1 continue to the end)
