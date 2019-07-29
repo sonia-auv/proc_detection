@@ -295,6 +295,9 @@ if __name__ == "__main__":
   client = GraphQLClient('https://api.labelbox.com/graphql')
   client.inject_token('Bearer ' + cfg['pred_api_key'])
   model_name = cfg['pred_model']
+  classes_filter = cfg['pred_classes_filter']
+  begin = cfg['pred_begin']
+  end = cfg['pred_end']
 
 
   cv_bridge = CvBridge()
@@ -365,7 +368,7 @@ if __name__ == "__main__":
               {
                   "color": "Cornsilk",
                   "tool": "rectangle",
-                  "name": "Answag"
+                  "name": "answag"
               }
           ]
       }
@@ -384,10 +387,13 @@ if __name__ == "__main__":
 
       inc = 0
 
+      while inc < begin:
+        fh.readline()
+        inc += 1
+
       for line in fh:
         line = line.rstrip()
         print("{} : {}".format(inc, line))
-        inc += 1
 
         url_list = line.split("/")
         image_input_fqn = os.path.join(images_path, '{image_dir}/{filename}'.format(image_dir=url_list[-2], filename=url_list[-1]))
@@ -402,14 +408,15 @@ if __name__ == "__main__":
 
         for i in range(boxes.shape[0]):
           if scores is not None and scores[0][i] > detection_thresh:
-            top = int(boxes[i][0] * image.shape[0])
-            left = int(boxes[i][1] * image.shape[1])
-            bottom = int(boxes[i][2] * image.shape[0])
-            right = int(boxes[i][3] * image.shape[1])
-            if(prediction_dict.has_key(str(category_index[classes[0][i]]['name']))):
-              prediction_dict[str(category_index[classes[0][i]]['name'])].append({"geometry": [{"x": left, "y": top}, {"x": right, "y": top}, {"x": right, "y": bottom}, {"x": left, "y": bottom}]})
-            else:
-              prediction_dict[str(category_index[classes[0][i]]['name'])] = [{"geometry": [{"x": left, "y": top}, {"x": right, "y": top}, {"x": right, "y": bottom}, {"x": left, "y": bottom}]}]
+            if str(category_index[classes[0][i]]['name']) in classes_filter:
+              top = int(boxes[i][0] * image.shape[0])
+              left = int(boxes[i][1] * image.shape[1])
+              bottom = int(boxes[i][2] * image.shape[0])
+              right = int(boxes[i][3] * image.shape[1])
+              if(prediction_dict.has_key(str(category_index[classes[0][i]]['name']))):
+                prediction_dict[str(category_index[classes[0][i]]['name'])].append({"geometry": [{"x": left, "y": top}, {"x": right, "y": top}, {"x": right, "y": bottom}, {"x": left, "y": bottom}]})
+              else:
+                prediction_dict[str(category_index[classes[0][i]]['name'])] = [{"geometry": [{"x": left, "y": top}, {"x": right, "y": top}, {"x": right, "y": bottom}, {"x": left, "y": bottom}]}]
 
         # in case of an http 503
         while True:
@@ -419,5 +426,9 @@ if __name__ == "__main__":
           except:
             continue
           break
+
+        if(inc >= end and end != -1) :
+          break
+        inc += 1
 
   print('Go to https://app.labelbox.com/projects/%s/overview and click start labeling' % (project_id))
