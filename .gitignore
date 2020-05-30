@@ -108,3 +108,5 @@ ENV/
 
 images/
 models/ssd_mobilenet_v1_guztav/
+models/
+config.yml
