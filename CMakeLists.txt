@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   geometry_msgs
   dynamic_reconfigure
+  sonia_msgs
 )
 
 #===============================================================================
@@ -25,14 +26,7 @@ find_package(catkin REQUIRED COMPONENTS
     image_transport
     cv_bridge
     roslaunch
-)
-
-add_message_files(
-  DIRECTORY msg
-  FILES
-  BoundingBox2D.msg
-  Detection.msg
-  DetectionArray.msg
+    sonia_msgs
 )
 
 add_service_files(
@@ -45,6 +39,7 @@ generate_messages(DEPENDENCIES
   std_msgs
   sensor_msgs
   geometry_msgs
+  sonia_msgs
 )
 
 catkin_package(
@@ -56,6 +51,7 @@ catkin_package(
     image_transport
     cv_bridge
     roslaunch
+    sonia_msgs
 )
 
 #===============================================================================
@@ -76,4 +72,3 @@ catkin_install_python(PROGRAMS bin/deepDetector
 
 # Add folders to be run by python nosetests
 #catkin_add_nosetests(test)
-
