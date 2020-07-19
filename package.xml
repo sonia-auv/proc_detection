@@ -3,7 +3,7 @@
   <name>deep_detector</name>
   <version>1.0.0</version>
   <description>
-    The proc_detection pacakge is responsible for object detection using tensorflow object detection API
+    The deep_detector package is responsible for object detection using tensorflow object detection API
   </description>
 
   <author>Antoine Dozois</author>
