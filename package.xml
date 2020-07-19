@@ -3,11 +3,11 @@
   <name>deep_detector</name>
   <version>1.0.0</version>
   <description>
-    The vision_server package is responsible for acquiring the images from
-    the cameras and applying filter and return information on those image.
+    The proc_detection pacakge is responsible for object detection using tensorflow object detection API
   </description>
 
   <author>Antoine Dozois</author>
+  <author>Martin Gauthier</author>
 
 
   <maintainer email="club.sonia@etsmtl.net">Club SONIA</maintainer>
