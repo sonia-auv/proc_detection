@@ -16,10 +16,10 @@ from cv_bridge import CvBridge
 from tensorflow.core.framework import graph_pb2
 import rospy
 from sensor_msgs.msg import CompressedImage as SensorImage
-from deep_detector.msg import DetectionArray, Detection, BoundingBox2D
+from sonia_msgs.msg import DetectionArray, Detection, BoundingBox2D
 from geometry_msgs.msg import Pose2D
 import json
-from deep_detector.srv import ChangeNetwork, ChangeNetworkRequest, ChangeNetworkResponse
+from sonia_msgs.srv import ChangeNetwork, ChangeNetworkRequest, ChangeNetworkResponse
 import sys
 
 import cv2
@@ -37,7 +37,7 @@ import thread
 
 class ObjectDetection:
     def __init__(self):
-        rospy.init_node('deep_detector')
+        rospy.init_node('proc_detection')
 
         self.frame = None
         self.cv_bridge = CvBridge()
@@ -75,9 +75,9 @@ class ObjectDetection:
         self.finish_init = False
 
 
-        self.network_service = rospy.Service("deep_detector/change_network", ChangeNetwork, self.handle_change_network)
+        self.network_service = rospy.Service("proc_detection/change_network", ChangeNetwork, self.handle_change_network)
         #self.image_publisher = rospy.Publisher(self.topic_publisher, SensorImage, queue_size=1)
-        self.bbox_publisher = rospy.Publisher('/deep_detector/bounding_box', DetectionArray, queue_size=1)
+        self.bbox_publisher = rospy.Publisher('proc_detection/bounding_box', DetectionArray, queue_size=1)
         self.detection_graph, self.score, self.expand = self.load_frozen_model()
         thread.start_new_thread(self.detection, ())
         self.finish_init = True
@@ -85,7 +85,7 @@ class ObjectDetection:
 
     ####################################################################################################################
     # This part is highly inspired on https://github.com/GustavZ/realtime_object_detection/blob/r1.0/object_detection.py
-    # Licence using MIT licence 
+    # Licence using MIT licence
     # Copyright to https://github.com/GustavZ
     def load_frozen_model(self):
         if(self.model != self.prev_model):
@@ -151,7 +151,7 @@ class ObjectDetection:
         self.frame = self.cv_bridge.compressed_imgmsg_to_cv2(img, desired_encoding="bgr8")
         if self.frame is None:
             rospy.logwarn("frame is None!")
- 
+
     def stop(self):
         # End everything
         self.fps.stop()

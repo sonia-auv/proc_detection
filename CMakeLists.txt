@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(deep_detector)
+project(proc_detection)
 
 
 #===============================================================================
@@ -29,17 +29,10 @@ find_package(catkin REQUIRED COMPONENTS
     sonia_msgs
 )
 
-add_service_files(
-  DIRECTORY srv
-  FILES
-  ChangeNetwork.srv
-)
-
 generate_messages(DEPENDENCIES
   std_msgs
   sensor_msgs
   geometry_msgs
-  sonia_msgs
 )
 
 catkin_package(
