@@ -7,7 +7,7 @@ This module is S.O.N.I.A's object detection module using our vison server based 
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
 
 ```bash
-$ git clone https://github.com/sonia-auv/deep_detector
+$ git clone https://github.com/sonia-auv/proc_detection
 ```
 
 ### Prerequisites
@@ -81,4 +81,3 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 ## Acknowledgments
 
 * This repository is highly inspred on [GustavZ repository](https://github.com/GustavZ?tab=repositories) Original part used from this project are still copyrighted by him. Such part have been identified in our code.
-
