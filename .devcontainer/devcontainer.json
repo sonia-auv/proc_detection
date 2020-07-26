@@ -1,0 +1,35 @@
+// For format details, see https://aka.ms/vscode-remote/devcontainer.json or this file's README at:
+// https://github.com/microsoft/vscode-dev-containers/tree/v0.128.0/containers/docker-existing-dockerfile
+{
+	"name": "proc_detection",
+	// Sets the run context to one level up instead of the .devcontainer folder.
+	"context": "..",
+	// Update the 'dockerFile' property if you aren't using the standard 'Dockerfile' filename.
+	"dockerFile": "../Dockerfile",
+	// Set *default* container specific settings.json values on container create.
+	"settings": {
+		"terminal.integrated.shell.linux": "bash"
+	},
+	"build": {
+		"target": "development-env-no-gpu" // For local development without GPU support
+		// "target": "development-env-gpu" // For local development with GPU support
+		// "target": "production-env" // For on AUV runtime development
+	},
+	// Add the IDs of extensions you want installed when the container is created.
+	"extensions": [
+		"ms-iot.vscode-ros"
+	],
+	"runArgs": [
+		"--cap-add=SYS_PTRACE",
+		"--security-opt",
+		"seccomp=unconfined",
+		"--rm",
+		"--network",
+		"host"
+	],
+	"mounts": [
+		"source=vscode-server-extension,target=/home/sonia/.vscode-server/extensions,type=volume"
+	],
+	"workspaceMount": "target=/home/sonia/ros_sonia_ws/src/proc_detection,type=volume",
+	"workspaceFolder": "/home/sonia/ros_sonia_ws/src/proc_detection"
+}
