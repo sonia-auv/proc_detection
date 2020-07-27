@@ -1,5 +1,5 @@
 ARG BASE_IMAGE_ARM="docker.pkg.github.com/sonia-auv/sonia_messages/sonia_messages:arm64-perception-l4t-latest"
-ARG BASE_IMAGE_X86="docker.pkg.github.com/sonia-auv/sonia_messages/sonia_messages:arm64-perception-latest"
+ARG BASE_IMAGE_X86="docker.pkg.github.com/sonia-auv/sonia_messages/sonia_messages:x86-perception-latest"
 # LOCAL DEV ENV
 FROM ${BASE_IMAGE_X86} as development-env
 
@@ -31,11 +31,11 @@ WORKDIR ${SONIA_WS}
 
 COPY . ${NODE_PATH}
 
-RUN apt-get install python-pip
+RUN apt-get update && apt-get install -y python-pip
 
 FROM development-env as development-env-no-gpu
 
-RUN pip install ${NODE_PATH}/requirements/dev/requirements-no-gpu.txt
+RUN bash -c "pip install -r ${NODE_PATH}/requirements/dev/requirements-no-gpu.txt"
 
 RUN bash -c "source ${ROS_WS_SETUP}; source ${BASE_LIB_WS_SETUP}; catkin_make"
 
@@ -57,7 +57,7 @@ CMD ["./scripts/launch.sh"]
 
 FROM development-env as development-env-gpu
 
-RUN pip install ${NODE_PATH}/requirements/dev/requirements-gpu.txt
+RUN bash -c "pip install -r ${NODE_PATH}/requirements/dev/requirements-gpu.txt"
 
 RUN bash -c "source ${ROS_WS_SETUP}; source ${BASE_LIB_WS_SETUP}; catkin_make"
 
@@ -104,7 +104,9 @@ ENV SONIA_WS_SETUP=${SONIA_WS}/devel/setup.bash
 
 WORKDIR ${SONIA_WS}
 
-RUN pip install ${NODE_PATH}/requirements/prod/requirements.txt
+RUN apt-get update && apt-get install -y python-pip
+
+RUN bash -c "pip install -r ${NODE_PATH}/requirements/prod/requirements.txt"
 
 COPY . ${NODE_PATH}
 RUN bash -c "source ${ROS_WS_SETUP}; source ${BASE_LIB_WS_SETUP}; catkin_make"
