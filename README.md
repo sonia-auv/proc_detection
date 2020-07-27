@@ -1,26 +1,21 @@
 # proc_detection
 
+This module is S.O.N.I.A's object detection module using our vison server based on [ROS](http://www.ros.org/) and inspired by [GustavZ repository](https://github.com/GustavZ?tab=repositories)
+
 ![Docker Image CI - Master Branch](https://github.com/sonia-auv/proc_detection/workflows/Docker%20Image%20CI%20-%20Master%20Branch/badge.svg)
 ![Docker Image CI - Develop Branch](https://github.com/sonia-auv/proc_detection/workflows/Docker%20Image%20CI%20-%20Develop%20Branch/badge.svg?branch=develop)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/sonia-auv/proc_detection)
 ![Average time to resolve an issue](https://isitmaintained.com/badge/resolution/sonia-auv/proc_detection.svg)
 
 
-*Please read the instructions and fill in the blanks*
-
-
-One Paragraph of project description goes here
-
 ## Getting Started
+
+These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
 
 Clone current project by using following command :
 ```bash
     git clone git@github.com:sonia-auv/proc_detection.git
 ```
-
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
-
-**IMPORTANT :** *If you have just imported your repository, please follow the instructions in* [BOOTSTRAP.md](BOOTSTRAP.md) (Once the bootstrap completed, you can remove this comment from the README)
 
 ### Prerequisites
 
@@ -90,8 +85,12 @@ Add additional project dependencies
 
 ## Versioning
 
-We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/your/project/tags).
+We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/sonia-auv/proc_detection/tags).
 
 ## License
 
 This project is licensed under the GNU License - see the [LICENSE](LICENSE) file for details
+
+## Acknowledgments
+
+* This repository is highly inspred on [GustavZ repository](https://github.com/GustavZ?tab=repositories) Original part used from this project are still copyrighted by him. Such part have been identified in our code.
