@@ -16,10 +16,10 @@ from cv_bridge import CvBridge
 from tensorflow.core.framework import graph_pb2
 import rospy
 from sensor_msgs.msg import CompressedImage as SensorImage
-from sonia_msgs.msg import DetectionArray, Detection, BoundingBox2D
+from sonia_common.msg import DetectionArray, Detection, BoundingBox2D
 from geometry_msgs.msg import Pose2D
 import json
-from sonia_msgs.srv import ChangeNetwork, ChangeNetworkRequest, ChangeNetworkResponse
+from sonia_common.srv import ChangeNetwork, ChangeNetworkRequest, ChangeNetworkResponse
 import sys
 import tensorflow.contrib.tensorrt as trt
 

@@ -5,14 +5,17 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "ROS: Launch",
+            "name": "ROS: Launch Local",
             "type": "ros",
             "request": "launch",
-            "preLaunchTask": {
-                "task": "build",
-                "type": "catkin_make"
-            },
+            "target": "/home/sonia/ros_sonia_ws/src/proc_detection/launch/proc_detection_local.launch",
+
+        },
+        {
+            "name": "ROS: Launch Sub",
+            "request": "launch",
             "target": "/home/sonia/ros_sonia_ws/src/proc_detection/launch/proc_detection.launch",
+            "type": "ros"
         }
     ]
 }

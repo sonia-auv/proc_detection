@@ -10,7 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   geometry_msgs
   dynamic_reconfigure
-  sonia_msgs
+  sonia_common
 )
 
 #===============================================================================
@@ -26,7 +26,7 @@ find_package(catkin REQUIRED COMPONENTS
     image_transport
     cv_bridge
     roslaunch
-    sonia_msgs
+    sonia_common
 )
 
 generate_messages(DEPENDENCIES
@@ -44,7 +44,7 @@ catkin_package(
     image_transport
     cv_bridge
     roslaunch
-    sonia_msgs
+    sonia_common
 )
 
 #===============================================================================
