@@ -31,7 +31,7 @@ WORKDIR ${SONIA_WS}
 
 COPY . ${NODE_PATH}
 
-RUN apt-get update && apt-get install -y python-pip
+RUN apt-get update && apt-get install -y python-pip python-tk
 
 FROM development-env as development-env-no-gpu
 
