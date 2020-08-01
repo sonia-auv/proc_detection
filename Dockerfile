@@ -1,5 +1,5 @@
-ARG BASE_IMAGE_ARM="docker.pkg.github.com/sonia-auv/sonia_messages/sonia_messages:arm64-perception-l4t-latest"
-ARG BASE_IMAGE_X86="docker.pkg.github.com/sonia-auv/sonia_messages/sonia_messages:x86-perception-latest"
+ARG BASE_IMAGE_ARM="docker.pkg.github.com/sonia-auv/sonia_common/sonia_common:arm64-perception-l4t-latest"
+ARG BASE_IMAGE_X86="docker.pkg.github.com/sonia-auv/sonia_common/sonia_common:x86-perception-latest"
 # LOCAL DEV ENV
 FROM ${BASE_IMAGE_X86} as development-env
 
