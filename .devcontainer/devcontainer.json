@@ -5,14 +5,11 @@
 	// Sets the run context to one level up instead of the .devcontainer folder.
 	"context": "..",
 	// Update the 'dockerFile' property if you aren't using the standard 'Dockerfile' filename.
-	"dockerFile": "../Dockerfile",
+	"dockerFile": "../Dockerfile.x86", // X86 BUILD
+	//"dockerFile": "../Dockerfile.arm64" // ARM64 BUILD
 	// Set *default* container specific settings.json values on container create.
 	"settings": {
 		"terminal.integrated.shell.linux": "bash"
-	},
-	"build": {
-		//"target": "development-env" // For local development without GPU support
-		"target": "production-env" // For on AUV runtime development
 	},
 	// Add the IDs of extensions you want installed when the container is created.
 	"extensions": [
