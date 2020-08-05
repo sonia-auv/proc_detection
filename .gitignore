@@ -103,9 +103,6 @@ ENV/
 #pycharm
 .idea/
 
-#vscode
-.vscode/
-
 images/
 models/ssd_mobilenet_v1_guztav/
 models/
