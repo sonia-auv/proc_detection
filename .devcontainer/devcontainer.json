@@ -11,9 +11,8 @@
 		"terminal.integrated.shell.linux": "bash"
 	},
 	"build": {
-		"target": "development-env-no-gpu" // For local development without GPU support
-		// "target": "development-env-gpu" // For local development with GPU support
-		// "target": "production-env" // For on AUV runtime development
+		//"target": "development-env" // For local development without GPU support
+		"target": "production-env" // For on AUV runtime development
 	},
 	// Add the IDs of extensions you want installed when the container is created.
 	"extensions": [
