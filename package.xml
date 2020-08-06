@@ -1,18 +1,17 @@
 <?xml version="1.0"?>
 <package>
-  <name>deep_detector</name>
-  <version>1.0.0</version>
+  <name>proc_detection</name>
+  <version>1.1.0</version>
   <description>
-    The vision_server package is responsible for acquiring the images from
-    the cameras and applying filter and return information on those image.
+    The proc_detection package is responsible for object detection using tensorflow object detection API
   </description>
 
   <author>Antoine Dozois</author>
+  <author>Martin Gauthier</author>
 
+  <maintainer email="club.sonia@etsmtl.net">Club SONIA</maintainer>
 
-  <maintainer email="jeremie.st.jules.prevost@gmail.com">Jérémie St-Jules Prévost</maintainer>
-
-  <license>GPLv3</license>
+  <license>MIT</license>
 
   <buildtool_depend>catkin</buildtool_depend>
 
@@ -21,14 +20,13 @@
   <build_depend>pcl_ros</build_depend>
   <build_depend>roslaunch</build_depend>
   <build_depend>std_msgs</build_depend>
-  <build_depend>message_generation</build_depend>
   <build_depend>image_transport</build_depend>
   <build_depend>cv_bridge</build_depend>
   <build_depend>libdc1394-dev</build_depend>
-  <build_depend>lib_atlas</build_depend>
   <build_depend>yaml-cpp</build_depend>
   <build_depend>dynamic_reconfigure</build_depend>
   <build_depend>vision_msgs</build_depend>
+  <build_depend>sonia_common</build_depend>
 
 
   <run_depend>rospy</run_depend>
@@ -36,14 +34,13 @@
   <run_depend>pcl_ros</run_depend>
   <run_depend>roslaunch</run_depend>
   <run_depend>std_msgs</run_depend>
-  <run_depend>message_generation</run_depend>
   <run_depend>message_runtime</run_depend>
   <run_depend>image_transport</run_depend>
   <run_depend>cv_bridge</run_depend>
   <run_depend>libdc1394-dev</run_depend>
-  <run_depend>lib_atlas</run_depend>
   <run_depend>yaml-cpp</run_depend>
   <run_depend>dynamic_reconfigure</run_depend>
   <run_depend>vision_msgs</run_depend>
+  <run_depend>sonia_common</run_depend>
 
 </package>

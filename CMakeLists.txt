@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(deep_detector)
+project(proc_detection)
 
 
 #===============================================================================
@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   geometry_msgs
   dynamic_reconfigure
+  sonia_common
 )
 
 #===============================================================================
@@ -25,20 +26,7 @@ find_package(catkin REQUIRED COMPONENTS
     image_transport
     cv_bridge
     roslaunch
-)
-
-add_message_files(
-  DIRECTORY msg
-  FILES
-  BoundingBox2D.msg
-  Detection.msg
-  DetectionArray.msg
-)
-
-add_service_files(
-  DIRECTORY srv
-  FILES
-  ChangeNetwork.srv
+    sonia_common
 )
 
 generate_messages(DEPENDENCIES
@@ -56,6 +44,7 @@ catkin_package(
     image_transport
     cv_bridge
     roslaunch
+    sonia_common
 )
 
 #===============================================================================
@@ -67,7 +56,7 @@ include_directories(
 
 #===============================================================================
 # I N S T A L L`
-catkin_install_python(PROGRAMS bin/deepDetector
+catkin_install_python(PROGRAMS bin/proc_detection
  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
@@ -76,4 +65,3 @@ catkin_install_python(PROGRAMS bin/deepDetector
 
 # Add folders to be run by python nosetests
 #catkin_add_nosetests(test)
-
