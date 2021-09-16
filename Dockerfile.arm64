@@ -36,9 +36,11 @@ RUN apt-get update && apt-get install -y python-pip \
     libjpeg8-dev \
     liblapack-dev \
     libblas-dev \
-    gfortran
+    gfortran \
+    libcublas10
 
 RUN pip install --upgrade pip
+RUN python -m pip install --upgrade setuptools
 
 COPY . ${NODE_PATH}
 
