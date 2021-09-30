@@ -45,7 +45,7 @@ COPY . ${NODE_PATH}
 
 RUN bash -c "pip install -r  ${NODE_PATH}/requirements/prod/requirements.txt"
 
-RUN bash -c "pip install --pre --extra-index-url https://developer.download.nvidia.com/compute/redist/jp/v44 ‘tensorflow<2’"
+RUN bash -c "pip install --pre --extra-index-url https://developer.download.nvidia.com/compute/redist/jp/v44 'tensorflow<2'"
 
 RUN bash -c "source ${ROS_WS_SETUP}; source ${BASE_LIB_WS_SETUP}; catkin_make"
 
