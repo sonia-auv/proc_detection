@@ -22,6 +22,10 @@
 
 fps_interval: 5             # Interval [s] to print fps of the last interval in console
 det_interval: 500           # intervall [frames] to print detections to console
+detection_thresh: 0.5                 # detection threshold for det_intervall
 det_th: 0.5                 # detection threshold for det_intervall
 allow_memory_growth: True   # limits memory allocation to the actual needs
-initial_model: "models/bw-ve-jd" #determine the initial loaded model
+initial_model: "models/old_model" #determine the initial loaded model
+image_subscriber: "/camera_array/front/image_raw"
+num_class: 7
+
