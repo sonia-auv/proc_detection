@@ -13,5 +13,5 @@ termcolor
 astor==0.8.1
 tensorboard==1.15.0
 backports.weakref~=1.0rc1
-absl-py~=0.1.6
+absl-py~=0.4
 tensorflow-estimator==1.15.1
