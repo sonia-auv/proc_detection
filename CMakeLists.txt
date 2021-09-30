@@ -13,9 +13,6 @@ find_package(catkin REQUIRED COMPONENTS
   sonia_common
 )
 
-find_package(OpenCV 4.1.1 REQUIRED)
-set(OpenCV_DIR /usr/local/share/opencv4)
-
 #===============================================================================
 # G E N E R A T E   M E S S A G E S   &   S E R V I C E S
 
