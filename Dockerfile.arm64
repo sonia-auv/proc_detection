@@ -33,6 +33,8 @@ RUN apt-get update && apt-get install -y python-pip \
     hdf5-tools libhdf5-dev \
     zlib1g-dev \
     zip \
+    opencv \
+    python-opencv \
     libjpeg8-dev \
     liblapack-dev \
     libblas-dev \
