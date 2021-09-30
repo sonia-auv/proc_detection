@@ -1,0 +1,5 @@
+{
+    "num_class": 7,
+    "detection_thresh": 0.5,
+    "image_subscriber": "/camera_array/front/image_raw/compressed"
+  }
