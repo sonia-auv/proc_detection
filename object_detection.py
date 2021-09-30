@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Thu Dec 21 12:01:40 2017
@@ -29,11 +29,10 @@ import cv2
 # os.system('protoc object_detection/protos/*.proto --python_out=.')
 
 from object_detection.utils import label_map_util
-from object_detection.utils import visualization_utils as vis_util
 from stuff.helper import FPS2, SessionWorker
 
 import time
-import thread
+import _thread
 
 
 class ObjectDetection:
@@ -80,7 +79,7 @@ class ObjectDetection:
         #self.image_publisher = rospy.Publisher(self.topic_publisher, SensorImage, queue_size=1)
         self.bbox_publisher = rospy.Publisher('/proc_detection/bounding_box', DetectionArray, queue_size=1)
         self.detection_graph, self.score, self.expand = self.load_frozen_model()
-        thread.start_new_thread(self.detection, ())
+        _thread.start_new_thread(self.detection, ())
         self.finish_init = True
         rospy.spin()
 
