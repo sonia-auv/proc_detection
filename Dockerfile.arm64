@@ -29,6 +29,10 @@ ENV SONIA_WS_SETUP=${SONIA_WS}/devel/setup.bash
 WORKDIR ${SONIA_WS}
 
 RUN apt-get update && apt-get install -y python3-pip \
+    python3-yaml \
+    python-catkin-tools \
+    python3-dev \ 
+    python3-numpy \
     libhdf5-serial-dev \
     hdf5-tools libhdf5-dev \
     zlib1g-dev \
@@ -44,6 +48,8 @@ RUN pip3 install --upgrade pip setuptools
 COPY . ${NODE_PATH}
 
 RUN bash -c "pip3 install -r  ${NODE_PATH}/requirements/prod/requirements.txt"
+
+RUN bash -c "pip3 install rospkg catkin_pkg"
 
 RUN bash -c "pip3 install --pre --extra-index-url https://developer.download.nvidia.com/compute/redist/jp/v44 'tensorflow<2'"
 
