@@ -7,6 +7,7 @@ keras_applications==1.0.8
 gast==0.2.2
 futures
 protobuf
+pyyaml
 pybind11
 matplotlib==2.2.5
 termcolor
