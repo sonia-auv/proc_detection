@@ -190,12 +190,12 @@ class ObjectDetection:
 
     def get_config(self):
         dir_path = os.path.dirname(os.path.realpath(__file__))
-        file = os.path.join(dir_path, 'config.yml')
+        file = os.path.join(dir_path, 'external', 'config.yml')
         if (file):
             with open(file, 'r') as ymlfile:
                 cfg = yaml.load(ymlfile)
         else:
-            file = os.path.join(dir_path, 'config.sample.yml')
+            file = os.path.join(dir_path, 'external', 'config.sample.yml')
             with open(file, 'r') as ymlfile:
                 cfg = yaml.load(ymlfile)
 
@@ -269,7 +269,7 @@ class ObjectDetection:
         while not self.finish_init:
             time.sleep(5)
 
-        json_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'config/model_path.json')
+        json_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'external', 'config/model_path.json')
         with open(json_path) as f:
             models = json.load(f)
         task_name = req.task
