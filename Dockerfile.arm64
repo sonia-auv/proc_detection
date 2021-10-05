@@ -56,7 +56,6 @@ RUN bash -c "pip3 install --pre --extra-index-url https://developer.download.nvi
 RUN bash -c "source ${ROS_WS_SETUP}; source ${BASE_LIB_WS_SETUP}; catkin_make"
 
 RUN chown -R ${SONIA_USER}: ${SONIA_WS}
-RUN usermod -a -G sonia,flirimaging ${SONIA_USER}
 
 Run chown -R sonia:sonia /home/sonia/ros_sonia_ws/src/proc_detection/external
 
