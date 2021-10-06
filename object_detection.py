@@ -75,7 +75,7 @@ class ObjectDetection:
         self.finish_init = False
 
 
-        self.network_service = rospy.Service("proc_detection/change_network", ChangeNetwork, self.handle_change_network)
+        self.network_service = rospy.Service("/proc_detection/change_network", ChangeNetwork, self.handle_change_network)
         #self.image_publisher = rospy.Publisher(self.topic_publisher, SensorImage, queue_size=1)
         self.bbox_publisher = rospy.Publisher('/proc_detection/bounding_box', DetectionArray, queue_size=1)
         self.detection_graph, self.score, self.expand = self.load_frozen_model()
@@ -309,6 +309,8 @@ class ObjectDetection:
                     self.image_subscriber = rospy.Subscriber(self.topic_subscriber, SensorImage, self.image_msg_callback)
                 else:
                     rospy.logwarn('no model found')
+        else:
+            rospy.logerr('the requested model does not exist.')
 
         return ChangeNetworkResponse(True)
 
