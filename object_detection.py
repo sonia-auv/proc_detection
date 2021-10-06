@@ -327,7 +327,7 @@ class ObjectDetection:
         return label_path
 
     def _get_model_config(self, name):
-        config_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'config', name + '.json')
+        config_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'external', 'config', name + '.json')
         with open(config_path) as f:
             print(f)
             configs = json.load(f)
