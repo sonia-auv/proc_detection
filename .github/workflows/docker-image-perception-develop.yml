@@ -8,8 +8,6 @@ jobs:
   build-ros-perception-x86-64:
     name: "Build ROS perception X86/64"
     runs-on: ubuntu-latest
-    cache-from: type=registry,ref=ghcr.io/sonia-auv/octopus-telemetry:latest
-    cache-to: type=inline
     env:
       BASE_IMAGE: "docker.pkg.github.com/sonia-auv/sonia_common/sonia_common:x86-perception-latest"
       ARCH: x86
@@ -25,6 +23,11 @@ jobs:
       - name: Build the docker image (perception based)
         run: |
           docker build . --file Dockerfile.x86 --tag build-${TARGET_VERSION}-${GITHUB_REF##*/}-${GITHUB_RUN_NUMBER} --build-arg BUILD_DATE=$(date '+%Y-%m-%d_%H:%M:%S') --build-arg VERSION=${GITHUB_REF##*/}-$(date '  +%Y-%m-%d_%H:%M:%S') --build-arg BASE_IMAGE=${BASE_IMAGE}
+        with:
+          context: .
+          push: true
+          cache-from: type=registry,ref=${GITHUB_REMOTE_URL}/${ARCH}-${TARGET_TYPE}-${TARGET_VERSION}
+          cache-to: type=inline
 
       - name: Run Module Unit Test
         run: |
@@ -42,10 +45,8 @@ jobs:
   build-ros-perception-arm64:
     name: "Build ROS perception AMR64"
     runs-on: ubuntu-latest
-    cache-from: type=registry,ref=ghcr.io/sonia-auv/octopus-telemetry:latest
-    cache-to: type=inline
     env:
-      BASE_IMAGE: "docker.pkg.github.com/sonia-auv/sonia_common/sonia_common:arm64-perception-latest"
+      BASE_IMAGE: "ghcr.io/sonia-auv/sonia_common/sonia_common:arm64-perception-latest"
       ARCH: arm64
       TARGET_TYPE: perception
       TARGET_VERSION: develop
@@ -72,6 +73,11 @@ jobs:
       - name: Build the docker image (perception based)
         run: |
           docker build . --file Dockerfile.arm64 --tag build-${TARGET_VERSION}-${GITHUB_REF##*/}-${GITHUB_RUN_NUMBER} --build-arg BUILD_DATE=$(date '+%Y-%m-%d_%H:%M:%S') --build-arg VERSION=${GITHUB_REF##*/}-$(date '  +%Y-%m-%d_%H:%M:%S') --build-arg BASE_IMAGE=${BASE_IMAGE}
+        with:
+          context: .
+          push: true
+          cache-from: type=registry,ref=${GITHUB_REMOTE_URL}/${ARCH}-${TARGET_TYPE}-${TARGET_VERSION}
+          cache-to: type=inline
 
       - name: Run Module Unit Test
         run: |
