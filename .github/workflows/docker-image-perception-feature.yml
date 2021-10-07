@@ -7,6 +7,8 @@ on:
 jobs:
   build-ros-perception-x86-64:
     name: "Build ROS perception X86/64"
+    cache-from: type=registry,ref=ghcr.io/sonia-auv/octopus-telemetry:latest
+    cache-to: type=inline
     runs-on: ubuntu-latest
     env:
       BASE_IMAGE: "docker.pkg.github.com/sonia-auv/sonia_common/sonia_common:x86-perception-latest"
@@ -34,6 +36,8 @@ jobs:
   build-ros-perception-arm64:
     name: "Build ROS perception AMR64"
     runs-on: ubuntu-latest
+    cache-from: type=registry,ref=ghcr.io/sonia-auv/octopus-telemetry:latest
+    cache-to: type=inline
     env:
       BASE_IMAGE: "docker.pkg.github.com/sonia-auv/sonia_common/sonia_common:arm64-perception-l4t-latest"
       ARCH: arm64
