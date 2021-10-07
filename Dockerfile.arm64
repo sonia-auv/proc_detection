@@ -52,14 +52,12 @@ WORKDIR ${SONIA_WS}/catkin_workspace
 RUN source /opt/ros/melodic/setup.bash
 RUN catkin config -DPYTHON_EXECUTABLE=/usr/bin/python3 -DPYTHON_INCLUDE_DIR=/usr/include/python3.6m -DPYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.6m.so
 RUN catkin config --install
-RUN catkin_make
-RUN source devel/setup.bash
+RUN bash -c "source ${ROS_WS_SETUP}; source ${BASE_LIB_WS_SETUP}; catkin_make"
 RUN git clone https://github.com/ros-perception/vision_opencv.git src/vision_opencv
 WORKDIR ${SONIA_WS}/catkin_workspace/src/vision_opencv/
 RUN git checkout 2.2.1
 WORKDIR ${SONIA_WS}/catkin_workspace
-RUN catkin build cv_bridge
-RUN source install/setup.bash --extend
+RUN bash -c "source ${ROS_WS_SETUP}; source ${BASE_LIB_WS_SETUP}; catkin build cv_bridge"
 WORKDIR ${SONIA_WS}
 
 COPY . ${NODE_PATH}
