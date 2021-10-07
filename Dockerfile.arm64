@@ -49,7 +49,6 @@ RUN pip3 install --upgrade pip setuptools
 # install cv_bridge for python3
 RUN mkdir -p catkin_workspace/src
 WORKDIR ${SONIA_WS}/catkin_workspace
-RUN source /opt/ros/melodic/setup.bash
 RUN catkin config -DPYTHON_EXECUTABLE=/usr/bin/python3 -DPYTHON_INCLUDE_DIR=/usr/include/python3.6m -DPYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.6m.so
 RUN catkin config --install
 RUN bash -c "source ${ROS_WS_SETUP}; source ${BASE_LIB_WS_SETUP}; catkin_make"
