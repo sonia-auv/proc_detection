@@ -22,11 +22,6 @@ jobs:
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
       - name: Build the docker image (perception based)
         run: docker build . --file Dockerfile.x86 --tag build-${TARGET_VERSION}-${GITHUB_REF##*/}-${GITHUB_RUN_NUMBER} --build-arg BUILD_DATE=$(date '+%Y-%m-%d_%H:%M:%S') --build-arg VERSION=${GITHUB_REF##*/}-$(date '  +%Y-%m-%d_%H:%M:%S') --build-arg BASE_IMAGE=${BASE_IMAGE}
-        with:
-          context: .
-          push: true
-          cache-from: type=registry,ref=${GITHUB_REMOTE_URL}/${ARCH}-${TARGET_TYPE}-${TARGET_VERSION}
-          cache-to: type=inline
 
       - name: Run Module Unit Test
         run: |
@@ -71,11 +66,6 @@ jobs:
 
       - name: Build the docker image (perception based)
         run: docker build . --file Dockerfile.arm64 --tag build-${TARGET_VERSION}-${GITHUB_REF##*/}-${GITHUB_RUN_NUMBER} --build-arg BUILD_DATE=$(date '+%Y-%m-%d_%H:%M:%S') --build-arg VERSION=${GITHUB_REF##*/}-$(date '  +%Y-%m-%d_%H:%M:%S') --build-arg BASE_IMAGE=${BASE_IMAGE}
-        with:
-          context: .
-          push: true
-          cache-from: type=registry,ref=${GITHUB_REMOTE_URL}/${ARCH}-${TARGET_TYPE}-${TARGET_VERSION}
-          cache-to: type=inline
 
       - name: Run Module Unit Test
         run: |
