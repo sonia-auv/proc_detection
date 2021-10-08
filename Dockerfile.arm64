@@ -47,16 +47,18 @@ RUN apt-get update && apt-get install -y python3-pip \
 RUN pip3 install --upgrade pip setuptools
 
 # install cv_bridge for python3
-RUN mkdir -p catkin_workspace/src
-WORKDIR ${SONIA_WS}/catkin_workspace
-RUN catkin config -DPYTHON_EXECUTABLE=/usr/bin/python3 -DPYTHON_INCLUDE_DIR=/usr/include/python3.6m -DPYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.6m.so
-RUN catkin config --install
-RUN git clone https://github.com/ros-perception/vision_opencv.git src/vision_opencv
-WORKDIR ${SONIA_WS}/catkin_workspace/src/vision_opencv/
-RUN git checkout 2.2.1
-WORKDIR ${SONIA_WS}/catkin_workspace
-RUN bash -c "source ${ROS_WS_SETUP}; source ${BASE_LIB_WS_SETUP}; catkin build cv_bridge"
-WORKDIR ${SONIA_WS}
+RUN bash -c " mkdir -p catkin_workspace/src; \
+    cd catkin_workspace; \
+    catkin init; \
+    catkin config -DPYTHON_EXECUTABLE=/usr/bin/python3 -DPYTHON_INCLUDE_DIR=/usr/include/python3.6m -DPYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.6m.so; \
+    catkin config --install; \
+    git clone https://github.com/ros-perception/vision_opencv.git src/vision_opencv; \
+    cd src/vision_opencv; \
+    git checkout 2.2.1; \
+    cd ../..; \
+    source ${ROS_WS_SETUP}; \ 
+    source ${BASE_LIB_WS_SETUP}; \
+    catkin build cv_bridge"
 
 COPY . ${NODE_PATH}
 
