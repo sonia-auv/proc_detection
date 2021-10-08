@@ -39,6 +39,8 @@ class ObjectDetection:
     def __init__(self):
         rospy.init_node('proc_detection')
 
+        rospy.loginfo("found gpu: {}".format(tf.test.gpu_device_name()))
+
         self.frame = None
         self.cv_bridge = CvBridge()
         self.category_index = None
