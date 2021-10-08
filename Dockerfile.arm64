@@ -15,6 +15,7 @@ LABEL net.etsmtl.sonia-auv.node.name=${NODE_NAME}
 
 
 ENV SONIA_WS=${SONIA_HOME}/ros_sonia_ws
+ENV CV_BRIDGE_INSTALL=${SONIA_WS}/cv_bridge_workspace/install/setup.bash
 
 ENV NODE_NAME=${NODE_NAME}
 ENV NODE_PATH=${SONIA_WS}/src/${NODE_NAME}
@@ -47,8 +48,8 @@ RUN apt-get update && apt-get install -y python3-pip \
 RUN pip3 install --upgrade pip setuptools
 
 # install cv_bridge for python3
-RUN bash -c " mkdir -p catkin_workspace/src; \
-    cd catkin_workspace; \
+RUN bash -c " mkdir -p cv_bridge_workspace/src; \
+    cd cv_bridge_workspace; \
     catkin init; \
     catkin config -DPYTHON_EXECUTABLE=/usr/bin/python3 -DPYTHON_INCLUDE_DIR=/usr/include/python3.6m -DPYTHON_LIBRARY=/usr/lib/aarch64-linux-gnu/libpython3.6m.so; \
     catkin config --install; \
