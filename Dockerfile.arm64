@@ -73,7 +73,7 @@ RUN bash -c "source ${ROS_WS_SETUP}; source ${BASE_LIB_WS_SETUP}; catkin_make"
 
 RUN chown -R ${SONIA_USER}: ${SONIA_WS}
 
-Run chown -R sonia:sonia /home/sonia/ros_sonia_ws/src/proc_detection/external
+RUN chown -R sonia:sonia /home/sonia/ros_sonia_ws/src/proc_detection/external
 
 USER ${SONIA_USER}
 
