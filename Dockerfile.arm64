@@ -54,7 +54,7 @@ RUN bash -c " mkdir -p catkin_workspace/src; \
     catkin config --install; \
     git clone https://github.com/ros-perception/vision_opencv.git src/vision_opencv; \
     cd src/vision_opencv; \
-    git checkout 2.2.1; \
+    git checkout melodic; \
     cd ../..; \
     source ${ROS_WS_SETUP}; \ 
     source ${BASE_LIB_WS_SETUP}; \
