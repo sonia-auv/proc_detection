@@ -7,6 +7,6 @@ source $ROS_WS_SETUP
 source $SONIA_WS_SETUP
 
 # setup cv_bridge
-source $CV_BRIDGE_INSTALL
+source $CV_BRIDGE_INSTALL --extend
 
 exec "$@"
