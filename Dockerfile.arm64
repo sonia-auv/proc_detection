@@ -78,6 +78,10 @@ RUN apt-get update && \
 		  zlib1g-dev \
 		  zip \
 		  libjpeg8-dev \
+		  python3-yaml \
+    		  python-catkin-tools \
+		  python3-catkin-pkg-modules \
+		  python3-opencv \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
