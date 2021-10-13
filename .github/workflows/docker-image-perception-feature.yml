@@ -1,11 +1,11 @@
-name: Docker Image CI - Feature Branch
+name: Docker Image CI - Feature
 
 on:
   push:
-    branches: [feature/**]
+    branches: [ feature/** ]
 
 jobs:
-  proc_detection:
+  octopus-telemetry:
     name: Build proc_detection
     runs-on: ubuntu-latest
     steps:
@@ -24,13 +24,26 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and Push proc_detection
+      - name: Build and Push proc_detection arm64
         uses: docker/build-push-action@v2
         with:
           context: .
           push: true
-          platforms: linux/amd64, linux/arm64
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:feature
+          platforms: linux/arm64
+          file: Dockerfile.arm64
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}-arm64:feature
           cache-to: type=inline
           tags: |
-            ghcr.io/${{ github.repository }}:feature
+            ghcr.io/${{ github.repository }}-arm64:feature
+
+      - name: Build and Push proc_detection amd64
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64
+          file: Dockerfile.x86
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}-amd64:feature
+          cache-to: type=inline
+          tags: |
+            ghcr.io/${{ github.repository }}-amd64:feature
