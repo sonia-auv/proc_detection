@@ -21,10 +21,11 @@
 ## SOFTWARE.
 
 fps_interval: 5             # Interval [s] to print fps of the last interval in console
-det_interval: 500           # intervall [frames] to print detections to console
-det_th: 0.5                 # detection threshold for det_intervall
 allow_memory_growth: True   # limits memory allocation to the actual needs
-initial_model: " "          # determine the initial loaded model
+initial_model: "models/bw-ve-jd"          # determine the initial loaded model
+trt_precision_mode: "FP32"
+trt_is_dynamic_op: False
+trt_minimum_segment_size: 50
 
 # prediction configuration
 
