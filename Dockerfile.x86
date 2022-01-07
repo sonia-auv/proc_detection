@@ -1,5 +1,4 @@
-
-ARG BASE_IMAGE_X86="ghcr.io/sonia-auv/sonia_common/sonia_common:x86-perception-develop"
+ARG BASE_IMAGE_X86="docker.pkg.github.com/sonia-auv/sonia_common/sonia_common:x86-perception-latest"
 
 FROM ${BASE_IMAGE_X86}
 
@@ -29,12 +28,21 @@ ENV SONIA_WS_SETUP=${SONIA_WS}/devel/setup.bash
 
 WORKDIR ${SONIA_WS}
 
+RUN apt-get update && apt-get install -y python-pip \
+    libhdf5-serial-dev \
+    hdf5-tools libhdf5-dev \
+    zlib1g-dev \
+    zip \
+    libjpeg8-dev \
+    liblapack-dev \
+    libblas-dev \
+    gfortran
+
 COPY . ${NODE_PATH}
 
-RUN apt-get update && apt-get install -y python-pip \
-    python-tk
+RUN bash -c "pip install -r  ${NODE_PATH}/requirements/prod/requirements.txt"
 
-RUN bash -c "pip install -r ${NODE_PATH}/requirements/dev/requirements.txt"
+RUN bash -c "pip install tensorflow-gpu==2.6.2"
 
 RUN bash -c "source ${ROS_WS_SETUP}; source ${BASE_LIB_WS_SETUP}; catkin_make"
 
