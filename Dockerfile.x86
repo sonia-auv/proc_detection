@@ -28,7 +28,8 @@ ENV SONIA_WS_SETUP=${SONIA_WS}/devel/setup.bash
 
 WORKDIR ${SONIA_WS}
 
-RUN apt-get update && apt-get install -y python-pip \
+RUN apt-get update && apt-get install -y python3.10 \
+    python-pip \
     libhdf5-serial-dev \
     hdf5-tools libhdf5-dev \
     zlib1g-dev \
