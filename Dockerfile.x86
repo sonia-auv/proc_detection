@@ -28,8 +28,8 @@ ENV SONIA_WS_SETUP=${SONIA_WS}/devel/setup.bash
 
 WORKDIR ${SONIA_WS}
 
-RUN apt-get update && apt-get install -y python3.10 \
-    python-pip \
+RUN apt-get update && apt-get install -y python3 \
+    python3-pip \
     libhdf5-serial-dev \
     hdf5-tools libhdf5-dev \
     zlib1g-dev \
@@ -41,9 +41,11 @@ RUN apt-get update && apt-get install -y python3.10 \
 
 COPY . ${NODE_PATH}
 
-RUN bash -c "pip install -r  ${NODE_PATH}/requirements/prod/requirements.txt"
+RUN bash -c "pip3 install -r  ${NODE_PATH}/requirements/prod/requirements.txt"
 
-RUN bash -c "pip install tensorflow-gpu==2.6.2"
+RUN bash -c "python3 -m pip install --upgrade pip --user"
+
+RUN bash -c "pip3 install --upgrade tensorflow-gpu==2.6.2"
 
 RUN bash -c "source ${ROS_WS_SETUP}; source ${BASE_LIB_WS_SETUP}; catkin_make"
 
