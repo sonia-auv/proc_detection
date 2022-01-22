@@ -16,3 +16,4 @@ backports.weakref~=1.0rc1
 absl-py~=0.4
 tensorflow-estimator==1.15.1
 opencv-python
+pyyaml
