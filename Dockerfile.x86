@@ -41,9 +41,9 @@ RUN apt-get update && apt-get install -y python3 \
 
 COPY . ${NODE_PATH}
 
-RUN bash -c "pip3 install -r  ${NODE_PATH}/requirements/prod/requirements.txt"
-
 RUN bash -c "python3 -m pip install --upgrade pip --user"
+
+RUN bash -c "pip3 install -r  ${NODE_PATH}/requirements/prod/requirements.txt"
 
 RUN bash -c "pip3 install --upgrade tensorflow-gpu==2.6.2"
 
