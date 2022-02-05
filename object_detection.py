@@ -222,7 +222,7 @@ class ObjectDetection:
                 time.sleep(1)
     
     def get_config(self):
-        with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'config.yml'), 'r') as ymlfile:
+        with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'external', 'config', 'config.yml'), 'r') as ymlfile:
             cfg = yaml.load(ymlfile)
         
         self.initial_model = cfg['initial_model']
