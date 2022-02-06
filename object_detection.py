@@ -97,10 +97,10 @@ class ObjectDetection:
             detection_graph = tf.Graph()
             if tensorrtEnabled:
                 try:
-                    trt_graph = self.load_graph_def(os.path.join(os.path.dirname(os.path.realpath(__file__)), model_name + "/trt.pb"))
+                    trt_graph = self.load_graph_def(os.path.join(os.path.dirname(os.path.realpath(__file__)), "external", model_name , "trt.pb"))
                     rospy.loginfo("loading graph from file")
                 except:
-                    od_graph_def = self.load_graph_def(os.path.join(os.path.dirname(os.path.realpath(__file__)), model_name + "/frozen_inference_graph.pb"))
+                    od_graph_def = self.load_graph_def(os.path.join(os.path.dirname(os.path.realpath(__file__)), "external", model_name , "frozen_inference_graph.pb"))
                     trt_graph = trt.create_inference_graph(
                     input_graph_def=od_graph_def,
                     outputs=["detection_boxes:0",
@@ -115,7 +115,7 @@ class ObjectDetection:
 
                     rospy.loginfo("loading graph from scratch")
 
-                    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), model_name + "/trt.pb"), "wb") as f:
+                    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "external", model_name , "trt.pb"), "wb") as f:
                         f.write(trt_graph.SerializeToString())
                     
                     with detection_graph.as_default():
@@ -125,14 +125,14 @@ class ObjectDetection:
 
                         rospy.loginfo("model is loaded!")
             else:
-                graph_def = self.load_graph_def(os.path.join(os.path.dirname(os.path.realpath(__file__)), model_name + "/frozen_inference_graph.pb"))
+                graph_def = self.load_graph_def(os.path.join(os.path.dirname(os.path.realpath(__file__)), "external", model_name , "frozen_inference_graph.pb"))
                 with detection_graph.as_default():
                     rospy.loginfo("finish importing the graph file")
                     tf.import_graph_def(graph_def, name='')
 
                     rospy.loginfo("model is loaded!")
             
-            label_map = label_map_util.load_labelmap(os.path.join(os.path.dirname(os.path.realpath(__file__)), model_name + "/labelmap.pbtxt"))
+            label_map = label_map_util.load_labelmap(os.path.join(os.path.dirname(os.path.realpath(__file__)), "external", model_name , "labelmap.pbtxt"))
             categories = label_map_util.convert_label_map_to_categories(label_map, max_num_classes=100, use_display_name=True)
             self.category_index = label_map_util.create_category_index(categories)
             
