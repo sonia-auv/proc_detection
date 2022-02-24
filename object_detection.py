@@ -94,71 +94,24 @@ class ObjectDetection:
         if(model_name != self.prev_model):
             self.prev_model = model_name
             rospy.loginfo("load a new frozen model {}".format(model_name))
-            detection_graph = tf.Graph()
+            model_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "external", model_name)
+            detection_function = tf.function()
             if tensorrtEnabled:
-                try:
-                    trt_graph = self.load_graph_def(os.path.join(os.path.dirname(os.path.realpath(__file__)), "external", model_name , "trt.pb"))
-                    rospy.loginfo("loading graph from file")
-                except:
-                    od_graph_def = self.load_graph_def(os.path.join(os.path.dirname(os.path.realpath(__file__)), "external", model_name , "frozen_inference_graph.pb"))
-                    trt_graph = trt.create_inference_graph(
-                    input_graph_def=od_graph_def,
-                    outputs=["detection_boxes:0",
-                            "detection_scores:0",
-                            "detection_classes:0",
-                            "num_detections:0"],
-                    max_batch_size=1,
-                    max_workspace_size_bytes=1<<25,
-                    precision_mode=self.trt_precision_mode,
-                    is_dynamic_op=self.trt_is_dynamic_op,
-                    minimum_segment_size=self.trt_segment_size)
+                params = trt.DEFAULT_TRT_CONVERSION_PARAMS
+                params = params._replace(precision_mode = self.trt_precision_mode)
+                converter = trt.TrtGraphConverterV2(input_saved_model=model_dir, conversion_params=params)
+                converter.convert()
+                #converter.build()
+                converter.save(output_graph)
 
-                    rospy.loginfo("loading graph from scratch")
-
-                    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "external", model_name , "trt.pb"), "wb") as f:
-                        f.write(trt_graph.SerializeToString())
-                    
-                    with detection_graph.as_default():
-
-                        rospy.loginfo("finish generating tensorrt engine")
-                        tf.import_graph_def(trt_graph, name='')
-
-                        rospy.loginfo("model is loaded!")
+                loaded_model = tf.saved_model.load(output_graph, tags=[tag_constants.SERVING])
+                detection_function = loaded_model.signatures[signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY]
             else:
-                graph_def = self.load_graph_def(os.path.join(os.path.dirname(os.path.realpath(__file__)), "external", model_name , "frozen_inference_graph.pb"))
-                with detection_graph.as_default():
-                    rospy.loginfo("finish importing the graph file")
-                    tf.import_graph_def(graph_def, name='')
-
-                    rospy.loginfo("model is loaded!")
+                detection_function = tf.saved_model.load(model_dir)
             
-            label_map = label_map_util.load_labelmap(os.path.join(os.path.dirname(os.path.realpath(__file__)), "external", model_name , "labelmap.pbtxt"))
-            categories = label_map_util.convert_label_map_to_categories(label_map, max_num_classes=100, use_display_name=True)
-            self.category_index = label_map_util.create_category_index(categories)
+            rospy.loginfo("model is loaded")
             
-            config = tf.ConfigProto(log_device_placement=False)
-            config.gpu_options.allow_growth = self.allow_memory_growth
-            with detection_graph.as_default():
-                self.sess = tf.Session(graph=detection_graph, config=config)
-                # Define Input and Ouput tensors
-                rospy.loginfo("detection graph context")
-                try:
-                    self.image_tensor = detection_graph.get_tensor_by_name('image_tensor:0')
-                    rospy.loginfo("image_tensor: {}".format(self.image_tensor))
-                    self.detection_boxes = detection_graph.get_tensor_by_name('detection_boxes:0')
-                    rospy.loginfo("detection_boxes: {}".format(self.detection_boxes))
-                    self.detection_scores = detection_graph.get_tensor_by_name(
-                        'detection_scores:0')
-                    rospy.loginfo("detection_scores: {}".format(self.detection_scores))
-                    self.detection_classes = detection_graph.get_tensor_by_name(
-                        'detection_classes:0')
-                    rospy.loginfo("detection_classes: {}".format(self.detection_classes))
-                    self.num_detections = self.detection_graph.get_tensor_by_name('num_detections:0')
-
-                except:
-                    rospy.logwarn("Unexpected error: {}".format(sys.exc_info()[0]))
-            
-            return detection_graph
+            return detection_function
 
         else:
 
@@ -189,40 +142,76 @@ class ObjectDetection:
 
         return ChangeNetworkResponse(True)
     
+    # function find at: https://github.com/tensorflow/models/blob/75b016b437ab21cbd19dd44451257989fdbb38d6/research/object_detection/colab_tutorials/object_detection_tutorial.ipynb
+    def run_inference_for_single_image(self, model, image):
+        image = np.asarray(image)
+        # The input needs to be a tensor, convert it using `tf.convert_to_tensor`.
+        input_tensor = tf.convert_to_tensor(image)
+        # The model expects a batch of images, so add an axis with `tf.newaxis`.
+        input_tensor = input_tensor[tf.newaxis,...]
+
+        # Run inference
+        model_fn = model.signatures['serving_default']
+        output_dict = model_fn(input_tensor)
+
+        # All outputs are batches tensors.
+        # Convert to numpy arrays, and take index [0] to remove the batch dimension.
+        # We're only interested in the first num_detections.
+        num_detections = int(output_dict.pop('num_detections'))
+        output_dict = {key:value[0, :num_detections].numpy() 
+                        for key,value in output_dict.items()}
+        output_dict['num_detections'] = num_detections
+
+        # detection_classes should be ints.
+        output_dict['detection_classes'] = output_dict['detection_classes'].astype(np.int64)
+        
+        # Handle models with masks:
+        # if 'detection_masks' in output_dict:
+        #     # Reframe the the bbox mask to the image size.
+        #     detection_masks_reframed = utils_ops.reframe_box_masks_to_image_masks(
+        #             output_dict['detection_masks'], output_dict['detection_boxes'],
+        #             image.shape[0], image.shape[1])      
+        #     detection_masks_reframed = tf.cast(detection_masks_reframed > 0.5,
+        #                                     tf.uint8)
+        #     output_dict['detection_masks_reframed'] = detection_masks_reframed.numpy()
+            
+        return output_dict
+    
     def detection(self):
         while not rospy.is_shutdown():
             if self.frame is not None:
-                with self.detection_graph.as_default():
-                    start = datetime.now()
+                start = datetime.now()
 
-                    image = self.frame
-                    self.frame = None
-                    image.setflags(write=1)
-                    image_expanded = np.expand_dims(image, axis=0)
-                    
-                    self.detection_mutex.acquire()
-                    boxes, scores, classes, num = self.sess.run(
-                        [self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detections],
-                        feed_dict={self.image_tensor: image_expanded})
-                    self.detection_mutex.release()
+                image = self.frame
+                self.frame = None
+                image.setflags(write=1)
+                image_expanded = np.expand_dims(image, axis=0)
+                
+                self.detection_mutex.acquire()
+                output_dict = self.run_inference_for_single_image(self.detection_graph, image)
+                #boxes, scores, classes, num = self.detection_graph(
+                #    [self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detections],
+                #    feed_dict={self.image_tensor: image_expanded})
+                self.detection_mutex.release()
 
-                    list_detection = DetectionArray()
+                #print(output_dict)
+                list_detection = DetectionArray()
 
-                    for i in range(boxes[0].shape[0]):
-                        if scores is not None and scores[0][i] > self.detection_thresh:
-                            detection = Detection()
-                            detection.top = boxes[0][i][0]
-                            detection.left = boxes[0][i][1]
-                            detection.bottom = boxes[0][i][2]
-                            detection.right = boxes[0][i][3]
+                for i in range(output_dict["detection_boxes"].shape[0]):
+                    if output_dict["detection_scores"] is not None and output_dict["detection_scores"][i] > self.threshold:
+                        detection = Detection()
+                        detection.top = output_dict["detection_boxes"][i][0]
+                        detection.left = output_dict["detection_boxes"][i][1]
+                        detection.bottom = output_dict["detection_boxes"][i][2]
+                        detection.right = output_dict["detection_boxes"][i][3]
 
-                            detection.confidence = scores[0][i]
-                            detection.class_name.data = str(self.category_index[classes[0][i]]['name'])
+                        detection.confidence = output_dict["detection_scores"][i]
+                        #detection.class_name.data = str(self.category_index[output_dict["detection_classes"][i]]['name'])
 
-                            list_detection.detected_object.append(detection)
-                            
-                    self.bbox_publisher.publish(list_detection)
-                    self.fps.update()
+                        list_detection.detected_object.append(detection)
+                        
+                self.bbox_publisher.publish(list_detection)
+                self.fps.update()
             else:
                 time.sleep(1)
     
