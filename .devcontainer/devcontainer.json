@@ -24,7 +24,8 @@
 		"host"
 	],
 	"mounts": [
-		"source=vscode-server-extension,target=/home/sonia/.vscode-server/extensions,type=volume"
+		"source=vscode-server-extension,target=/home/sonia/.vscode-server/extensions,type=volume",
+		"source=/home/sonia/external_ressource/proc_detection,target=/home/sonia/ros_sonia_ws/src/proc_detection/external,type=bind"
 	],
 	"workspaceMount": "target=/home/sonia/ros_sonia_ws/src/proc_detection,type=volume",
 	"workspaceFolder": "/home/sonia/ros_sonia_ws/src/proc_detection"
