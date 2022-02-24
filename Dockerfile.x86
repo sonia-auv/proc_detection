@@ -1,4 +1,4 @@
-ARG BASE_IMAGE_X86="ghcr.io/sonia-auv/sonia_common/sonia_common:x86-perception-feature-ninjemys"
+ARG BASE_IMAGE_X86="ghcr.io/sonia-auv/sonia_common/sonia_common:x86-perception-feature-deep_learning_msg"
 
 FROM ${BASE_IMAGE_X86}
 
@@ -39,9 +39,9 @@ RUN apt-get update && apt-get install -y python3 \
     libblas-dev \
     gfortran
 
-COPY . ${NODE_PATH}
-
 RUN bash -c "python3 -m pip install --upgrade pip --user"
+
+COPY . ${NODE_PATH}
 
 RUN bash -c "pip3 install -r  ${NODE_PATH}/requirements/prod/requirements.txt"
 
