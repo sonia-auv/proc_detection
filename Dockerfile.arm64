@@ -96,10 +96,9 @@ RUN pip3 install --no-cache-dir --verbose numpy
 ARG TENSORFLOW_URL=https://developer.download.nvidia.com/compute/redist/jp/v46/tensorflow/tensorflow-2.6.2+nv21.12-cp36-cp36m-linux_aarch64.whl
 ARG TENSORFLOW_WHL=tensorflow-2.6.2+nv21.12-cp36-cp36m-linux_aarch64.whl
 
-RUN wget --quiet --show-progress --progress=bar:force:noscroll --no-check-certificate ${TENSORFLOW_URL} -O ${TENSORFLOW_WHL} && \
-    pip3 install --no-cache-dir --verbose ${TENSORFLOW_WHL} && \
-    rm ${TENSORFLOW_WHL}
-
+RUN wget --quiet --show-progress --progress=bar:force:noscroll --no-check-certificate ${TENSORFLOW_URL} -O ${TENSORFLOW_WHL}
+RUN pip3 install --no-cache-dir --verbose ${TENSORFLOW_WHL}
+RUN rm ${TENSORFLOW_WHL}
 
 # 
 # PyCUDA
