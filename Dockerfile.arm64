@@ -131,10 +131,9 @@ RUN cd /tmp && \
 RUN pip3 show protobuf && \
     protoc --version
 
-RUN pip3 install --no-cache-dir --verbose numpy
+RUN pip3 install --no-cache-dir numpy==1.19.2
 RUN H5PY_SETUP_REQUIRES=0 pip3 install --no-cache-dir --verbose h5py==3.1.0
-RUN pip3 install --no-cache-dir --verbose future==0.18.2 mock==3.0.5 keras_preprocessing==1.1.2 keras_applications==1.0.8 gast==0.4.0 futures pybind11
-
+RUN pip3 install absl-py==0.12.0 astunparse==1.6.3 clang==5.0 flatbuffers==1.12.0 google-pasta==0.2 keras-preprocessing==1.1.2 opt-einsum==3.3.0 six==1.15.0 termcolor==1.1.0 typing-extensions==3.7.4 wrapt==1.12.1 gast==0.4.0 tensorboard==2.6 tensorflow-estimator==2.6 keras==2.6 grcpio==1.37.0 future==0.18.2 mock==3.0.5 futures pybind11
 #
 # TensorFlow 
 #
