@@ -8,6 +8,7 @@ Created on Thu Dec 21 12:01:40 2017
 """
 
 import os
+os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 import sys
 import cv2
 import copy
@@ -45,6 +46,8 @@ except:
 
 class ObjectDetection:
     def __init__(self):
+        
+        
         rospy.init_node('proc_detection')
         rospy.loginfo("found gpu: {}".format(tf.test.gpu_device_name()))
 
