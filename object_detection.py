@@ -113,7 +113,7 @@ class ObjectDetection:
                 detection_function = tf.saved_model.load(model_dir)
             
             # load label names
-            label_map = label_map_util.load_labelmap(os.path.dirname(os.path.realpath(__file__)), "external", 'models', model_name, 'labelmap.pbtxt')
+            label_map = label_map_util.load_labelmap(os.path.join(os.path.dirname(os.path.realpath(__file__)), "external", 'models', model_name, 'labelmap.pbtxt'))
             categories = label_map_util.convert_label_map_to_categories(label_map, max_num_classes=self.num_classes, use_display_name=True)
             self.category_index = label_map_util.create_category_index(categories)
             rospy.loginfo("model is loaded")
