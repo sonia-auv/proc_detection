@@ -130,16 +130,6 @@ def convert_label_map_to_categories(label_map,
     if item.id not in list_of_ids_already_added:
       list_of_ids_already_added.append(item.id)
       category = {'id': item.id, 'name': name}
-      if item.keypoints:
-        keypoints = {}
-        list_of_keypoint_ids = []
-        for kv in item.keypoints:
-          if kv.id in list_of_keypoint_ids:
-            raise ValueError('Duplicate keypoint ids are not allowed. '
-                             'Found {} more than once'.format(kv.id))
-          keypoints[kv.label] = kv.id
-          list_of_keypoint_ids.append(kv.id)
-        category['keypoints'] = keypoints
       categories.append(category)
   return categories
 
