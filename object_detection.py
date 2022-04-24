@@ -97,7 +97,7 @@ class ObjectDetection:
         if(model_name != self.prev_model):
             self.prev_model = model_name
             rospy.loginfo("load a new frozen model {}".format(model_name))
-            model_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "external", 'models' , model_name)
+            model_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "external", 'models' , model_name, 'saved_model')
             detection_function = tf.function()
             if tensorrtEnabled:
                 params = trt.DEFAULT_TRT_CONVERSION_PARAMS
