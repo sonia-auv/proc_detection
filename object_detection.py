@@ -97,7 +97,7 @@ class ObjectDetection:
         if(model_name != self.prev_model):
             self.prev_model = model_name
             rospy.loginfo("load a new frozen model {}".format(model_name))
-            model_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "external", model_name)
+            model_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "external", 'models' , model_name)
             detection_function = tf.function()
             if tensorrtEnabled:
                 params = trt.DEFAULT_TRT_CONVERSION_PARAMS
@@ -108,10 +108,14 @@ class ObjectDetection:
                 converter.save(output_graph)
 
                 loaded_model = tf.saved_model.load(output_graph, tags=[tag_constants.SERVING])
-                detection_function = loaded_model.signatures[signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY]
+                detection_functiosn = loaded_model.signatures[signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY]
             else:
                 detection_function = tf.saved_model.load(model_dir)
             
+            # load label names
+            label_map = label_map_util.load_labelmap(os.path.dirname(os.path.realpath(__file__)), "external", 'models', model_name, 'labelmap.pbtxt')
+            categories = label_map_util.convert_label_map_to_categories(label_map, max_num_classes=self.num_classes, use_display_name=True)
+            self.category_index = label_map_util.create_category_index(categories)
             rospy.loginfo("model is loaded")
             
             return detection_function
@@ -209,7 +213,7 @@ class ObjectDetection:
                         detection.right = output_dict["detection_boxes"][i][3]
 
                         detection.confidence = output_dict["detection_scores"][i]
-                        #detection.class_name.data = str(self.category_index[output_dict["detection_classes"][i]]['name'])
+                        detection.class_name.data = str(self.category_index[output_dict["detection_classes"][i]]['name'])
 
                         list_detection.detected_object.append(detection)
                         
