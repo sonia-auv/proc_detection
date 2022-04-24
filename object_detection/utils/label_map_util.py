@@ -130,8 +130,6 @@ def convert_label_map_to_categories(label_map,
     if item.id not in list_of_ids_already_added:
       list_of_ids_already_added.append(item.id)
       category = {'id': item.id, 'name': name}
-      if item.HasField('instance_count'):
-        category['instance_count'] = item.instance_count
       if item.keypoints:
         keypoints = {}
         list_of_keypoint_ids = []
