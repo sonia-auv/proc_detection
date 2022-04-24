@@ -112,7 +112,7 @@ class ObjectDetection:
             
             # load label names
             label_map = label_map_util.load_labelmap(os.path.join(os.path.dirname(os.path.realpath(__file__)), "external", 'models', model_name, 'labelmap.pbtxt'))
-            categories = label_map_util.convert_label_map_to_categories(label_map, use_display_name=True)
+            categories = label_map_util.convert_label_map_to_categories(label_map, max_num_classes=self.num_classes, use_display_name=True)
             self.category_index = label_map_util.create_category_index(categories)
             rospy.loginfo("model is loaded")
             
@@ -226,6 +226,7 @@ class ObjectDetection:
         
         self.initial_model = cfg['initial_model']
         self.fps_limit = cfg['fps_limit']
+        self.num_classes = cfg['max_num_classes']
         self.allow_memory_growth = cfg['allow_memory_growth']
         self.trt_precision_mode = cfg['trt_precision_mode']
         self.trt_is_dynamic_op = cfg['trt_is_dynamic_op']
