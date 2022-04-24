@@ -45,9 +45,7 @@ except:
 
 
 class ObjectDetection:
-    def __init__(self):
-        
-        
+    def __init__(self): 
         rospy.init_node('proc_detection')
         rospy.loginfo("found gpu: {}".format(tf.test.gpu_device_name()))
 
