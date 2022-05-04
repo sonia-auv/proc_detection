@@ -1,6 +1,6 @@
 <launch>
-	<node name="object_detection"
+	<node name="proc_detection"
 	    pkg="proc_detection"
-	    type="object_detection.py"
+	    type="proc_detection.py"
 	    output="screen" />
 </launch>
