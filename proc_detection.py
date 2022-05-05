@@ -123,7 +123,7 @@ class ObjectDetection:
             rospy.loginfo("keep the previous model")
             return self.detection_graph
     
-    def stop_topic(self):
+    def stop_topic(self, req):
         if self.image_subscriber is not None:
             self.image_subscriber.unregister()
             self.image_subscriber = None
