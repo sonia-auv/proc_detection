@@ -74,7 +74,7 @@ class ObjectDetection:
 
         self.network_service = rospy.Service("/proc_detection/change_network", ChangeNetwork, self.handle_change_network)
         self.stop_service = rospy.Service("/proc_detection/stop_topic", Trigger, self.stop_topic)
-        self.bbox_publisher = rospy.Publisher('/proc_detection/bounding_box', DetectionArray, queue_size=1)
+        self.bbox_publisher = rospy.Publisher('/proc_detection/bounding_box', DetectionArray, queue_size=10)
         self.detection_mutex.acquire()
         self.detection_graph = self.load_frozen_model(self.initial_model)
         self.detection_mutex.release()
