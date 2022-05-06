@@ -211,7 +211,7 @@ class ObjectDetection:
                         detection.right = output_dict["detection_boxes"][i][3]
 
                         detection.confidence = output_dict["detection_scores"][i]
-                        detection.class_name.data = str(self.category_index[output_dict["detection_classes"][i]]['name'])
+                        detection.class_name = str(self.category_index[output_dict["detection_classes"][i]]['name'])
 
                         list_detection.detected_object.append(detection)
                         
