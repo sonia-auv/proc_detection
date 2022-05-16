@@ -8,7 +8,6 @@ Created on Thu Dec 21 12:01:40 2017
 """
 
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 import sys
 import cv2
 import copy
@@ -38,16 +37,22 @@ except:
 
 tensorrtEnabled = False
 try:
-    import tensorflow.contrib.tensorrt as trt
+    from tensorflow.python.compiler.tensorrt import trt_convert as trt
     tensorrtEnabled = True
-except:
-    rospy.loginfo("cannot import tensorrt, probably because the gpu is not detected!")
+except Exception as err:
+    print(err)
 
 
 class ObjectDetection:
     def __init__(self): 
         rospy.init_node('proc_detection')
         rospy.loginfo("found gpu: {}".format(tf.test.gpu_device_name()))
+
+        if(tensorrtEnabled):
+            rospy.loginfo("Using tensorrt!")
+        else:
+            rospy.loginfo("cannot import tensorrt, probably because the gpu is not detected!")
+
 
         self.cv_bridge = CvBridge()
         self.fps_interval = 5
@@ -64,10 +69,11 @@ class ObjectDetection:
         self.prev_model = None
         self.initial_model = None
         self.fps_limit = None
-        self.allow_memory_growth = None
+        self.run_with_tensorrt = None
         self.trt_precision_mode = None
-        self.trt_is_dynamic_op = None
         self.trt_segment_size = None
+        self.trt_image_width = None
+        self.trt_image_height = None
         self.frame = None
 
         self.get_config()
@@ -97,18 +103,42 @@ class ObjectDetection:
             rospy.loginfo("load a new frozen model {}".format(model_name))
             model_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "external", 'models' , model_name, 'saved_model')
             detection_function = tf.function()
-            if tensorrtEnabled:
-                params = trt.DEFAULT_TRT_CONVERSION_PARAMS
-                params = params._replace(precision_mode = self.trt_precision_mode)
-                converter = trt.TrtGraphConverterV2(input_saved_model=model_dir, conversion_params=params)
-                converter.convert()
-                #converter.build()
-                converter.save(output_graph)
+            if tensorrtEnabled and self.run_with_tensorrt:
+                output_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "external", 'models' , model_name, 'trt')
 
-                loaded_model = tf.saved_model.load(output_graph, tags=[tag_constants.SERVING])
-                detection_functiosn = loaded_model.signatures[signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY]
+                if not os.path.exists(output_dir):
+                    params = trt.DEFAULT_TRT_CONVERSION_PARAMS
+                    params = params._replace(precision_mode = self.trt_precision_mode)
+                    converter = trt.TrtGraphConverterV2(input_saved_model_dir=model_dir, conversion_params=params)
+
+                    matrix_type = np.float32
+
+                    if self.trt_precision_mode == "FP32":
+                        matrix_type = np.float32
+                    elif self.trt_precision_mode == "FP16":
+                        matrix_type = np.float16
+                    elif self.trt_precision_mode == "INT8":
+                        matrix_type = np.uint8
+                    
+                    if self.trt_precision_mode == "INT8":
+                        def calibration_input_fn():
+                            inp1 = np.random.normal(size=(1, 1, self.trt_image_width, self.trt_image_height, 3)).astype(matrix_type)
+                            yield inp1
+
+                        converter.convert(calibration_input_fn=calibration_input_fn)
+                    else:
+                        converter.convert()
+
+                    def input_fn():
+                        inp1 = np.random.normal(size=(1, 1, self.trt_image_width, self.trt_image_height, 3)).astype(matrix_type)
+                        yield inp1
+
+                    converter.build(input_fn=input_fn)
+                    converter.save(output_dir)
+
+                loaded_model = tf.saved_model.load(output_dir, tags=['serve'])
             else:
-                detection_function = tf.saved_model.load(model_dir)
+                loaded_model = tf.saved_model.load(model_dir)
             
             # load label names
             label_map = label_map_util.load_labelmap(os.path.join(os.path.dirname(os.path.realpath(__file__)), "external", 'models', model_name, 'labelmap.pbtxt'))
@@ -116,7 +146,7 @@ class ObjectDetection:
             self.category_index = label_map_util.create_category_index(categories)
             rospy.loginfo("model is loaded")
             
-            return detection_function
+            return loaded_model
 
         else:
 
@@ -142,7 +172,7 @@ class ObjectDetection:
             self.detection_mutex.release()
 
         self.image_subscriber = rospy.Subscriber(req.topic, SensorImage, self.image_msg_callback)
-        self.threshold = req.threshold
+        self.threshold = req.threshold/100.0
         self.fps = FPS2(self.fps_interval).start()
 
         return ChangeNetworkResponse(True)
@@ -169,16 +199,6 @@ class ObjectDetection:
 
         # detection_classes should be ints.
         output_dict['detection_classes'] = output_dict['detection_classes'].astype(np.int64)
-        
-        # Handle models with masks:
-        # if 'detection_masks' in output_dict:
-        #     # Reframe the the bbox mask to the image size.
-        #     detection_masks_reframed = utils_ops.reframe_box_masks_to_image_masks(
-        #             output_dict['detection_masks'], output_dict['detection_boxes'],
-        #             image.shape[0], image.shape[1])      
-        #     detection_masks_reframed = tf.cast(detection_masks_reframed > 0.5,
-        #                                     tf.uint8)
-        #     output_dict['detection_masks_reframed'] = detection_masks_reframed.numpy()
             
         return output_dict
     
@@ -194,12 +214,8 @@ class ObjectDetection:
                 
                 self.detection_mutex.acquire()
                 output_dict = self.run_inference_for_single_image(self.detection_graph, image)
-                #boxes, scores, classes, num = self.detection_graph(
-                #    [self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detections],
-                #    feed_dict={self.image_tensor: image_expanded})
                 self.detection_mutex.release()
 
-                #print(output_dict)
                 list_detection = DetectionArray()
 
                 for i in range(output_dict["detection_boxes"].shape[0]):
@@ -227,10 +243,11 @@ class ObjectDetection:
         self.initial_model = cfg['initial_model']
         self.fps_limit = cfg['fps_limit']
         self.num_classes = cfg['max_num_classes']
-        self.allow_memory_growth = cfg['allow_memory_growth']
+        self.run_with_tensorrt = cfg['run_with_tensorrt']
         self.trt_precision_mode = cfg['trt_precision_mode']
-        self.trt_is_dynamic_op = cfg['trt_is_dynamic_op']
         self.trt_segment_size = cfg['trt_segment_size']
+        self.trt_image_width = cfg['trt_image_width']
+        self.trt_image_height = cfg['trt_image_height']
 
 
 if __name__ == '__main__':
