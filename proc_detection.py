@@ -98,7 +98,7 @@ class ObjectDetection:
         return graph_def
     
     def load_frozen_model(self, model_name):
-        if(model_name != self.prev_model):
+        if(model_name != self.prev_model and model_name != "@default"):
             self.prev_model = model_name
             rospy.loginfo("load a new frozen model {}".format(model_name))
             model_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "external", 'models' , model_name, 'saved_model')
