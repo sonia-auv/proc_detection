@@ -144,13 +144,13 @@ class ObjectDetection:
             label_map = label_map_util.load_labelmap(os.path.join(os.path.dirname(os.path.realpath(__file__)), "external", 'models', model_name, 'labelmap.pbtxt'))
             categories = label_map_util.convert_label_map_to_categories(label_map, max_num_classes=self.num_classes, use_display_name=True)
             self.category_index = label_map_util.create_category_index(categories)
-            rospy.loginfo("model is loaded")
+            rospy.loginfo("model " + model_name + " is loaded")
             
             return loaded_model
 
         else:
 
-            rospy.loginfo("keep the previous model")
+            rospy.loginfo("keep the previous model " + model_name)
             return self.detection_graph
     
     def stop_topic(self, req):
@@ -165,11 +165,9 @@ class ObjectDetection:
             self.image_subscriber.unregister()
             self.image_subscriber = None
         
-        if req.network_name != self.prev_model:
-            self.prev_model = req.network_name
-            self.detection_mutex.acquire()
-            self.detection_graph = self.load_frozen_model(req.network_name)
-            self.detection_mutex.release()
+        self.detection_mutex.acquire()
+        self.detection_graph = self.load_frozen_model(req.network_name)
+        self.detection_mutex.release()
 
         self.image_subscriber = rospy.Subscriber(req.topic, SensorImage, self.image_msg_callback)
         self.threshold = req.threshold/100.0
