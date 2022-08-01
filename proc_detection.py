@@ -197,6 +197,10 @@ class ObjectDetection:
     
     def detection(self):
         while not rospy.is_shutdown():
+            statusmsg = ChangeNetworkMsg()
+            statusmsg.topic = self.prev_model
+            statusmsg.network_name = self.image_subscriber.name
+            self.network_publisher.publish(statusmsg)
             if self.frame is not None:
                 start = datetime.now()
 
