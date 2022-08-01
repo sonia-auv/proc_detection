@@ -76,7 +76,7 @@ class ObjectDetection:
         self.get_config()
 
         self.network_subscriber = rospy.Subscriber("/proc_detection/change_network", ChangeNetworkMsg, self.handle_change_network)
-        self.network_publisher = rospy.Publisher("/proc_detection/status_ML", ChangeNetworkMsg, queue_size=10)
+        self.network_publisher = rospy.Publisher("/proc_detection/status", ChangeNetworkMsg, queue_size=10)
         self.stop_subscriber = rospy.Subscriber("/proc_detection/stop_topic", Empty, self.stop_topic)
         self.bbox_publisher = rospy.Publisher('/proc_detection/bounding_box', DetectionArray, queue_size=10)
         self.detection_mutex.acquire()
