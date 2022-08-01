@@ -10,9 +10,7 @@ Created on Thu Dec 21 12:01:40 2017
 import os
 import sys
 import cv2
-import copy
 import yaml
-import json
 import rospy
 import time
 import _thread
@@ -22,12 +20,11 @@ import tensorflow as tf
 
 from cv_bridge import CvBridge
 from sensor_msgs.msg import CompressedImage as SensorImage
-from sonia_common.msg import DetectionArray, Detection, BoundingBox2D
-from std_srvs.srv import Trigger
+from std_msgs.msg import Empty
+from sonia_common.msg import DetectionArray, Detection, ChangeNetworkMsg
 from datetime import datetime
-from sonia_common.srv import ChangeNetwork, ChangeNetworkRequest, ChangeNetworkResponse
 from object_detection.utils import label_map_util
-from stuff.helper import FPS2, SessionWorker
+from stuff.helper import FPS2
 from threading import Lock
 
 try:
@@ -78,14 +75,14 @@ class ObjectDetection:
 
         self.get_config()
 
-        self.network_service = rospy.Service("/proc_detection/change_network", ChangeNetwork, self.handle_change_network)
-        self.stop_service = rospy.Service("/proc_detection/stop_topic", Trigger, self.stop_topic)
+        self.network_subscriber = rospy.Subscriber("/proc_detection/change_network", ChangeNetworkMsg, self.handle_change_network)
+        self.network_publisher = rospy.Publisher("/proc_detection/status_ML", ChangeNetworkMsg, queue_size=10)
+        self.stop_subscriber = rospy.Subscriber("/proc_detection/stop_topic", Empty, self.stop_topic)
         self.bbox_publisher = rospy.Publisher('/proc_detection/bounding_box', DetectionArray, queue_size=10)
         self.detection_mutex.acquire()
         self.detection_graph = self.load_frozen_model(self.initial_model)
         self.detection_mutex.release()
         _thread.start_new_thread(self.detection, ())
-        rospy.spin()
     
     def image_msg_callback(self, img):
         self.frame = self.cv_bridge.compressed_imgmsg_to_cv2(img, desired_encoding="bgr8")
@@ -153,27 +150,25 @@ class ObjectDetection:
             rospy.loginfo("keep the previous model " + model_name)
             return self.detection_graph
     
-    def stop_topic(self, req):
+    def stop_topic(self, data):
+        if self.image_subscriber is not None:
+            self.image_subscriber.unregister()
+            self.image_subscriber = None
+
+    def handle_change_network(self, data):
         if self.image_subscriber is not None:
             self.image_subscriber.unregister()
             self.image_subscriber = None
         
-        return {'success': True, 'message':''}
+        if data.network_name != self.prev_model:
+            self.prev_model = data.network_name
+            self.detection_mutex.acquire()
+            self.detection_graph = self.load_frozen_model(data.network_name)
+            self.detection_mutex.release()
 
-    def handle_change_network(self, req):
-        if self.image_subscriber is not None:
-            self.image_subscriber.unregister()
-            self.image_subscriber = None
-        
-        self.detection_mutex.acquire()
-        self.detection_graph = self.load_frozen_model(req.network_name)
-        self.detection_mutex.release()
-
-        self.image_subscriber = rospy.Subscriber(req.topic, SensorImage, self.image_msg_callback)
-        self.threshold = req.threshold/100.0
+        self.image_subscriber = rospy.Subscriber(data.topic, SensorImage, self.image_msg_callback)
+        self.threshold = data.threshold/100.0
         self.fps = FPS2(self.fps_interval).start()
-
-        return ChangeNetworkResponse(True)
     
     # function find at: https://github.com/tensorflow/models/blob/75b016b437ab21cbd19dd44451257989fdbb38d6/research/object_detection/colab_tutorials/object_detection_tutorial.ipynb
     def run_inference_for_single_image(self, model, image):
@@ -233,6 +228,7 @@ class ObjectDetection:
                 self.fps.update()
             else:
                 time.sleep(1)
+                rospy.loginfo("FPS: -1")
     
     def get_config(self):
         with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'external', 'config', 'config.yml'), 'r') as ymlfile:
@@ -246,6 +242,10 @@ class ObjectDetection:
         self.trt_segment_size = cfg['trt_segment_size']
         self.trt_image_width = cfg['trt_image_width']
         self.trt_image_height = cfg['trt_image_height']
+    
+    def __del__(self):
+        self.network_subscriber.unregister()
+        self.stop_subscriber.unregister()
 
 
 if __name__ == '__main__':
