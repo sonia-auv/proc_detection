@@ -240,8 +240,7 @@ class ObjectDetection:
                 self.bbox_publisher.publish(list_detection)
                 self.fps.update()
             else:
-                time.sleep(1)
-                rospy.loginfo("FPS: -1")
+                time.sleep(0.01)
 
     
     def get_config(self):
