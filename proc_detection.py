@@ -10,6 +10,8 @@ Created on Thu Dec 21 12:01:40 2017
 import os
 import sys
 import cv2
+import copy
+import json
 import yaml
 import rospy
 import time
@@ -21,10 +23,11 @@ import tensorflow as tf
 from cv_bridge import CvBridge
 from sensor_msgs.msg import CompressedImage as SensorImage
 from std_msgs.msg import Empty
-from sonia_common.msg import DetectionArray, Detection, ChangeNetworkMsg
+from sonia_common.msg import DetectionArray, Detection, ChangeNetworkMsg, BoundingBox2D
+
 from datetime import datetime
 from object_detection.utils import label_map_util
-from stuff.helper import FPS2
+from stuff.helper import FPS2, SessionWorker
 from threading import Lock
 
 try:
@@ -83,6 +86,8 @@ class ObjectDetection:
         self.detection_graph = self.load_frozen_model(self.initial_model)
         self.detection_mutex.release()
         _thread.start_new_thread(self.detection, ())
+        rospy.spin()
+        
     
     def image_msg_callback(self, img):
         self.frame = self.cv_bridge.compressed_imgmsg_to_cv2(img, desired_encoding="bgr8")
@@ -196,10 +201,14 @@ class ObjectDetection:
         return output_dict
     
     def detection(self):
+        rospy.loginfo("detection thread launched!")
         while not rospy.is_shutdown():
             statusmsg = ChangeNetworkMsg()
-            statusmsg.topic = self.prev_model
-            statusmsg.network_name = self.image_subscriber.name
+            if self.image_subscriber is None:
+                statusmsg.topic = "None"
+            else:
+                statusmsg.topic = self.image_subscriber.name
+            statusmsg.network_name = self.prev_model
             self.network_publisher.publish(statusmsg)
             if self.frame is not None:
                 start = datetime.now()
@@ -233,6 +242,7 @@ class ObjectDetection:
             else:
                 time.sleep(1)
                 rospy.loginfo("FPS: -1")
+
     
     def get_config(self):
         with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'external', 'config', 'config.yml'), 'r') as ymlfile:
@@ -246,7 +256,7 @@ class ObjectDetection:
         self.trt_segment_size = cfg['trt_segment_size']
         self.trt_image_width = cfg['trt_image_width']
         self.trt_image_height = cfg['trt_image_height']
-    
+
     def __del__(self):
         self.network_subscriber.unregister()
         self.stop_subscriber.unregister()
