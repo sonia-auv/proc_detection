@@ -158,7 +158,7 @@ class ObjectDetection:
             self.image_subscriber.unregister()
             self.image_subscriber = None
         
-        return Trigger(True)
+        return {'success': True, 'message':''}
 
     def handle_change_network(self, req):
         if self.image_subscriber is not None:
