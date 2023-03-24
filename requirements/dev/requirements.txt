@@ -1,2 +1,2 @@
-tensorflow==1.13.00rc0
+tensorflow==2.11.1
 matplotlib
