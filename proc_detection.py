@@ -38,6 +38,7 @@ except:
 tensorrtEnabled = False
 try:
     from tensorflow.python.compiler.tensorrt import trt_convert as trt
+
     tensorrtEnabled = True
 except Exception as err:
     print(err)
@@ -66,7 +67,7 @@ class ObjectDetection:
 
         self.image_subscriber = None
         self.prev_model = None
-        self.initial_model = None
+        self.initial_model = "compev1"
         self.fps_limit = None
         self.run_with_tensorrt = None
         self.trt_precision_mode = None
@@ -86,9 +87,8 @@ class ObjectDetection:
         self.detection_graph = self.load_frozen_model(self.initial_model)
         self.detection_mutex.release()
         self.yolo_classes = [
-            "Bins_Abydos_1", "Bins_Abydos_2", "Bins_Earth_1", "Bins_Earth_2", "Gate_Abydos", "Gate_Earth",
-            "Glyph_Abydos_1",
-            "Glyph_Abydos_2", "Glyph_Earth_1", "Glyph_Earth_2", "Stargate_Closed", "Stargate_Open"
+            "Bins_Abydos", "Bins_Earth", "Bins_Unknown", "Gate", "Gate_Abydos", "Gate_Earth", "Glyph_Abydos_1",
+            "Glyph_Abydos_2", "Glyph_Earth_1", "Glyph_Earth_2", "Hexagon", "Stargate_Closed", "Stargate_Open"
         ]
         _thread.start_new_thread(self.detection, ())
         rospy.spin()
@@ -104,11 +104,14 @@ class ObjectDetection:
         return graph_def
 
     def load_frozen_model(self, model_name):
+        rospy.loginfo(model_name)
+        if model_name[-1] == "/":
+            return self.detection_graph
+        rospy.loginfo(f"new model_name: {model_name}")
         if (model_name != self.prev_model and model_name != "@default"):
             self.prev_model = model_name
             rospy.loginfo("load a new frozen model {}".format(model_name))
-            model_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "external", 'models', model_name,
-                                     'saved_model')
+            model_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "external", 'models', model_name)
             detection_function = tf.function()
             if tensorrtEnabled and self.run_with_tensorrt:
                 output_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "external", 'models', model_name,
@@ -151,6 +154,10 @@ class ObjectDetection:
                 loaded_model = tf.saved_model.load(model_dir)
                 loaded_model = loaded_model.signatures["serving_default"]
 
+            # load label names
+            # label_map = label_map_util.load_labelmap(os.path.join(os.path.dirname(os.path.realpath(__file__)), "external", 'models', model_name, 'labelmap.pbtxt'))
+            # categories = label_map_util.convert_label_map_to_categories(label_map, max_num_classes=self.num_classes, use_display_name=True)
+            # self.category_index = label_map_util.create_category_index(categories)
             rospy.loginfo("model " + model_name + " is loaded")
 
             return loaded_model
@@ -179,11 +186,12 @@ class ObjectDetection:
         self.threshold = data.threshold / 100.0
         self.fps = FPS2(self.fps_interval).start()
 
+    # function find at: https://github.com/tensorflow/models/blob/75b016b437ab21cbd19dd44451257989fdbb38d6/research/object_detection/colab_tutorials/object_detection_tutorial.ipynb
     def run_inference_for_single_image(self, model, img):
         img = np.asarray(img)
         # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        sq_img = np.zeros((640, 640, 3), dtype=np.uint8)
-        sq_img[120:520, 20:620, :] = img
+        sq_img = np.zeros((416, 608, 3), dtype=np.uint8)
+        sq_img[8:408, 4:604, :] = img
         sq_img = np.transpose(sq_img, (2, 0, 1))
         sq_img = np.expand_dims(sq_img, axis=0)
         sq_img = sq_img / 255.0
@@ -225,10 +233,10 @@ class ObjectDetection:
 
                 for output in output_list:
                     detection = Detection()
-                    detection.top = min(max(output[0] - 120, 0), 400) / 400
-                    detection.left = min(max(output[1] - 20, 0), 600) / 600
-                    detection.bottom = min(max(output[2] - 120, 0), 400) / 400
-                    detection.right = min(max(output[3] - 20, 0), 600) / 600
+                    detection.top = min(max(output[0] - 8, 0), 400) / 400
+                    detection.left = min(max(output[1] - 4, 0), 600) / 600
+                    detection.bottom = min(max(output[2] - 8, 0), 400) / 400
+                    detection.right = min(max(output[3] - 4, 0), 600) / 600
 
                     detection.confidence = output[5]
                     detection.class_name = output[4]
@@ -245,7 +253,6 @@ class ObjectDetection:
                   'r') as ymlfile:
             cfg = yaml.load(ymlfile, Loader=Loader)
 
-        self.initial_model = cfg['initial_model']
         self.fps_limit = cfg['fps_limit']
         self.num_classes = cfg['max_num_classes']
         self.run_with_tensorrt = cfg['run_with_tensorrt']
