@@ -233,13 +233,13 @@ class ObjectDetection:
 
                 for output in output_list:
                     detection = Detection()
-                    detection.top = min(max(output[0] - 8, 0), 400) / 400
-                    detection.left = min(max(output[1] - 4, 0), 600) / 600
-                    detection.bottom = min(max(output[2] - 8, 0), 400) / 400
-                    detection.right = min(max(output[3] - 4, 0), 600) / 600
+                    detection.left = min(max(output[0] - 4, 0), 600) / 600
+                    detection.top = min(max(output[1] - 8, 0), 400) / 400
+                    detection.right = min(max(output[2] - 4, 0), 600) / 600
+                    detection.bottom = min(max(output[3] - 8, 0), 400) / 400
 
-                    detection.confidence = output[5]
                     detection.class_name = output[4]
+                    detection.confidence = output[5]
 
                     list_detection.detected_object.append(detection)
 
